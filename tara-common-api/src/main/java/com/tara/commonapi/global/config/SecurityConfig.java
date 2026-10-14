@@ -58,6 +58,9 @@ public class SecurityConfig {
                                         "이 키로 쓸 수 없는 API 입니다. 키의 권한(scope)을 확인하세요.")))
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/actuator/health", "/error").permitAll();
+                    // 관리 화면(정적 HTML). 화면 접근 자체는 nginx 가 관리자 IP 로 제한하고,
+                    // 화면이 부르는 /api/admin/** 은 어차피 관리 토큰이 있어야 동작한다.
+                    auth.requestMatchers("/admin.html").permitAll();
                     auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
                     auth.requestMatchers("/api/notify/**").hasAuthority("SCOPE_notify");
                     // 앞으로 추가되는 공용 API 도 키 인증은 기본으로 받는다(각자 scope 규칙을 위에 추가)

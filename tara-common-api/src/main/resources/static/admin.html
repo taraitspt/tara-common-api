@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>공용 API 관리</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --text: #1a1f27; --muted: #667085;
+    --line: #e4e7ec; --accent: #2a5bd7; --accent-text: #ffffff;
+    --danger: #d92d20; --ok: #067647; --warn-bg: #fffaeb; --warn-line: #fec84b;
+    --chip-bg: #eef2f9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11141a; --card: #1a1f27; --text: #e6e9ef; --muted: #98a2b3;
+      --line: #2c3340; --accent: #6b93f2; --accent-text: #0e1320;
+      --danger: #f97066; --ok: #47cd89; --warn-bg: #2a2110; --warn-line: #6b5518;
+      --chip-bg: #242b38;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.6 "Segoe UI", "Malgun Gothic", system-ui, sans-serif; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+          padding: 16px; margin-bottom: 16px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--card); color: var(--text); font: inherit; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  button.small { padding: 3px 8px; font-size: 12px; }
+  button.danger { color: var(--danger); }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+  .row > div { flex: 1 1 140px; min-width: 120px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  .chip { display: inline-block; background: var(--chip-bg); border-radius: 99px;
+    padding: 1px 9px; font-size: 12px; margin: 0 2px 2px 0; }
+  .on { color: var(--ok); font-weight: 600; } .off { color: var(--danger); font-weight: 600; }
+  .muted { color: var(--muted); } .mono { font-family: Consolas, monospace; font-size: 12px; }
+  .keybox { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 8px;
+    padding: 14px; margin-top: 12px; }
+  .keybox code { display: block; font-family: Consolas, monospace; font-size: 14px;
+    word-break: break-all; margin: 8px 0; padding: 10px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 6px; }
+  .hide { display: none !important; }
+  details summary { cursor: pointer; font-weight: 600; }
+  #msg { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: var(--text); color: var(--card); padding: 8px 18px; border-radius: 8px;
+    font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .scrollx { overflow-x: auto; }
+  td .btns { display: flex; gap: 4px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>공용 API 사용처 관리</h1>
+  <p class="sub">사용처(부서 시스템) 등록 · API 키 발급 · 중지 · 발송 기록 — tara-common-api</p>
+
+  <!-- 토큰 -->
+  <div class="card">
+    <div class="row">
+      <div style="flex:3">
+        <label>관리 토큰 (X-Admin-Token) — 이 브라우저 탭에서만 유지되고 저장되지 않습니다</label>
+        <input id="token" type="password" placeholder="관리 토큰을 붙여넣으세요" autocomplete="off">
+      </div>
+      <div style="flex:0"><button class="primary" onclick="connect()">연결</button></div>
+    </div>
+  </div>
+
+  <!-- 발급 결과 (1회 표시) -->
+  <div id="issued" class="keybox hide">
+    <b>🔑 키가 발급되었습니다 — 지금이 아니면 다시 볼 수 없습니다</b>
+    <code id="issuedKey"></code>
+    <button class="primary" onclick="copyKey()">키 복사</button>
+    <button onclick="document.getElementById('issued').classList.add('hide')">닫기</button>
+    <div class="muted" style="margin-top:8px">해당 부서 담당자에게 1:1로 전달하세요. 서버에는 해시만 저장되어 재조회가 불가능합니다. 분실 시 "재발급"을 쓰세요.</div>
+  </div>
+
+  <!-- 등록 -->
+  <div class="card hide" id="createCard">
+    <details>
+      <summary>➕ 새 사용처 등록 + 키 발급</summary>
+      <div class="row" style="margin-top:12px">
+        <div><label>사용처 이름 *</label><input id="c_name" placeholder="예: 영업관리 GROW"></div>
+        <div><label>담당 부서</label><input id="c_dept" placeholder="예: IT지원팀"></div>
+        <div><label>담당자</label><input id="c_owner" placeholder="예: 홍길동"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:2"><label>허용 IP/CIDR (쉼표 구분, 비우면 제한 없음 — 운영은 꼭 입력)</label>
+          <input id="c_ips" placeholder="예: 52.78.211.240/32"></div>
+        <div><label>분당 한도 (기본 30, 대량 리마인드면 150~300)</label><input id="c_rate" type="number" min="1" max="300" placeholder="30"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:2"><label>메모</label><input id="c_memo" placeholder="예: 결재 알림용, 2026-10-14 발급"></div>
+        <div style="flex:0"><button class="primary" onclick="createClient()">등록 + 키 발급</button></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- 목록 -->
+  <div class="card hide" id="listCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b>사용처 목록</b>
+      <button class="small" onclick="loadClients()">새로고침</button>
+    </div>
+    <div class="scrollx"><table id="tbl">
+      <thead><tr>
+        <th>#</th><th>사용처</th><th>담당</th><th>키</th><th>권한</th><th>허용 IP</th>
+        <th>한도/분</th><th>상태</th><th>최근 사용</th><th>30일 발송</th><th>관리</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+
+  <!-- 발송 기록 -->
+  <div class="card hide" id="logCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b id="logTitle">발송 기록</b>
+      <button class="small" onclick="document.getElementById('logCard').classList.add('hide')">닫기</button>
+    </div>
+    <div class="scrollx"><table id="logTbl">
+      <thead><tr><th>시각</th><th>받는 사람</th><th>제목</th><th>결과</th><th>오류</th><th>호출 IP</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+</div>
+<div id="msg"></div>
+
+<script>
+let clients = [];
+
+function token() { return document.getElementById('token').value.trim(); }
+
+function toast(t) {
+  const m = document.getElementById('msg');
+  m.textContent = t; m.style.opacity = 1;
+  setTimeout(() => m.style.opacity = 0, 2500);
+}
+
+async function api(path, opts = {}) {
+  opts.headers = Object.assign({ 'X-Admin-Token': token(), 'Content-Type': 'application/json' }, opts.headers || {});
+  let res, body;
+  try { res = await fetch(path, opts); body = await res.json(); }
+  catch (e) { toast('서버에 연결할 수 없습니다'); throw e; }
+  if (!body.success) { toast((body.code || '') + ' — ' + (body.message || '요청 실패')); throw new Error(body.message); }
+  return body.data;
+}
+
+async function connect() {
+  if (!token()) { toast('관리 토큰을 입력하세요'); return; }
+  await loadClients();
+  document.getElementById('createCard').classList.remove('hide');
+  document.getElementById('listCard').classList.remove('hide');
+  toast('연결됨');
+}
+
+function esc(s) { return (s ?? '').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function dt(s) { return s ? s.replace('T', ' ').slice(0, 16) : '-'; }
+
+async function loadClients() {
+  clients = await api('/api/admin/clients');
+  const tb = document.querySelector('#tbl tbody');
+  tb.innerHTML = clients.map(c => `
+    <tr>
+      <td>${c.clientSeq}</td>
+      <td><b>${esc(c.clientName)}</b>${c.memo ? `<div class="muted" style="font-size:12px">${esc(c.memo)}</div>` : ''}</td>
+      <td>${esc(c.ownerDept || '')}${c.ownerName ? '<br>' + esc(c.ownerName) : ''}</td>
+      <td class="mono">${esc(c.keyPrefix)}…</td>
+      <td>${(c.scopes || []).map(s => `<span class="chip">${esc(s)}</span>`).join('')}</td>
+      <td class="mono">${esc(c.allowedIps || '제한 없음')}</td>
+      <td>${c.ratePerMin}</td>
+      <td class="${c.active ? 'on' : 'off'}">${c.active ? '사용 중' : '중지'}</td>
+      <td class="muted">${dt(c.lastUsedAt)}</td>
+      <td>${c.sent30d}건${c.failed30d ? ` <span class="off">(실패 ${c.failed30d})</span>` : ''}</td>
+      <td><div class="btns">
+        <button class="small" onclick="showLogs(${c.clientSeq})">기록</button>
+        <button class="small" onclick="toggleActive(${c.clientSeq})">${c.active ? '중지' : '다시 사용'}</button>
+        <button class="small danger" onclick="regen(${c.clientSeq})">재발급</button>
+      </div></td>
+    </tr>`).join('') || '<tr><td colspan="11" class="muted">등록된 사용처가 없습니다</td></tr>';
+}
+
+async function createClient() {
+  const name = document.getElementById('c_name').value.trim();
+  if (!name) { toast('사용처 이름을 입력하세요'); return; }
+  const rate = parseInt(document.getElementById('c_rate').value, 10);
+  const data = await api('/api/admin/clients', { method: 'POST', body: JSON.stringify({
+    clientName: name,
+    ownerDept: document.getElementById('c_dept').value.trim() || null,
+    ownerName: document.getElementById('c_owner').value.trim() || null,
+    allowedIps: document.getElementById('c_ips').value.trim() || null,
+    ratePerMin: isNaN(rate) ? null : rate,
+    memo: document.getElementById('c_memo').value.trim() || null,
+  })});
+  showIssued(data.apiKey);
+  ['c_name','c_dept','c_owner','c_ips','c_rate','c_memo'].forEach(id => document.getElementById(id).value = '');
+  await loadClients();
+}
+
+function showIssued(key) {
+  document.getElementById('issuedKey').textContent = key;
+  document.getElementById('issued').classList.remove('hide');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function copyKey() {
+  try { await navigator.clipboard.writeText(document.getElementById('issuedKey').textContent); toast('복사됨'); }
+  catch { toast('복사 실패 — 직접 드래그해서 복사하세요'); }
+}
+
+function find(seq) { return clients.find(c => c.clientSeq === seq); }
+
+function savePayload(c) {
+  return { clientName: c.clientName, ownerDept: c.ownerDept, ownerName: c.ownerName,
+           scopes: c.scopes, allowedIps: c.allowedIps, ratePerMin: c.ratePerMin,
+           active: c.active, memo: c.memo };
+}
+
+async function toggleActive(seq) {
+  const c = find(seq);
+  const next = !c.active;
+  if (!confirm(`"${c.clientName}" 키를 ${next ? '다시 사용' : '중지'}하시겠어요?` + (next ? '' : '\n중지하면 그 즉시 이 키로는 발송할 수 없습니다.'))) return;
+  const p = savePayload(c); p.active = next;
+  await api('/api/admin/clients/' + seq, { method: 'PUT', body: JSON.stringify(p) });
+  toast(next ? '사용 재개' : '중지됨');
+  await loadClients();
+}
+
+async function regen(seq) {
+  const c = find(seq);
+  if (!confirm(`"${c.clientName}" 키를 재발급할까요?\n예전 키는 즉시 무효가 됩니다 — 사용 중인 시스템에 새 키를 전달해야 합니다.`)) return;
+  const data = await api(`/api/admin/clients/${seq}/regenerate`, { method: 'POST' });
+  showIssued(data.apiKey);
+  await loadClients();
+}
+
+async function showLogs(seq) {
+  const c = find(seq);
+  const logs = await api(`/api/admin/clients/${seq}/logs?limit=100`);
+  document.getElementById('logTitle').textContent = `발송 기록 — ${c.clientName} (최근 ${logs.length}건)`;
+  document.querySelector('#logTbl tbody').innerHTML = logs.map(l => `
+    <tr>
+      <td class="muted">${dt(l.sentAt)}</td>
+      <td>${esc(l.recipient)}</td>
+      <td>${esc(l.title || '')}</td>
+      <td class="${l.success ? 'on' : 'off'}">${l.success ? '성공' : '실패'}</td>
+      <td class="muted">${esc(l.errorMessage || '')}</td>
+      <td class="mono">${esc(l.requestIp || '')}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="muted">기록 없음</td></tr>';
+  document.getElementById('logCard').classList.remove('hide');
+  document.getElementById('logCard').scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('token').addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+</script>
+</body>
+</html>
