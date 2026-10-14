@@ -1,0 +1,14 @@
+.gradle/
+build/
+bin/
+out/
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# 비밀값 — 커밋 금지
+.env.local
+.env.deploy.local

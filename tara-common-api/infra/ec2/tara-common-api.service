@@ -1,0 +1,26 @@
+# tara-common-api(공용 API 서버). infra/ec2/setup.sh 가 /etc/systemd/system/ 에 설치한다.
+[Unit]
+Description=Tara Common API (Spring Boot)
+After=network-online.target mariadb.service
+Wants=network-online.target
+Requires=mariadb.service
+
+[Service]
+Type=simple
+User=tara
+Group=tara
+WorkingDirectory=/opt/tara-common-api
+# 비밀값은 여기 두지 않는다 — root:tara 640 파일에서 읽는다.
+EnvironmentFile=/etc/tara-common-api/tara-common-api.env
+Environment=SPRING_PROFILES_ACTIVE=prod
+Environment=HOME=/opt/tara-common-api
+ExecStart=/usr/bin/java -Xms128m -Xmx512m -Duser.timezone=Asia/Seoul -jar /opt/tara-common-api/tara-common-api.jar
+# Spring Boot 는 SIGTERM 에 143 으로 끝난다 — 정상 종료로 본다.
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

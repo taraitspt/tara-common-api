@@ -1,0 +1,66 @@
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  application:
+    name: tara-common-api
+
+  jpa:
+    hibernate:
+      # 스키마는 Flyway 가 만든다(local 프로파일만 예외 — H2 에 엔티티로 생성)
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# MS Graph 서비스계정 — Teams 1:1 메시지 발송. ENV(MS_TENANT_ID/MS_CLIENT_ID/MS_USERNAME/MS_PASSWORD) 로 주입.
+# 비우면 발송 API 가 NOTIFY_UNAVAILABLE(503) 을 돌려준다.
+msgraph:
+  tenant-id: ${MS_TENANT_ID:}
+  client-id: ${MS_CLIENT_ID:}
+  username: ${MS_USERNAME:}
+  password: ${MS_PASSWORD:}
+
+app:
+  swagger:
+    enabled: ${APP_SWAGGER_ENABLED:true}
+  admin:
+    # /api/admin/** 호출 시 헤더 X-Admin-Token 값. 비어 있으면 관리 API 는 전부 403.
+    token: ${APP_ADMIN_TOKEN:}
+  security:
+    # 서버 전체 접속 허용 CIDR(쉼표). 비면 제한 없음. 운영은 반드시 설정.
+    ip-allowlist: ${APP_IP_ALLOWLIST:}
+    # nginx 등 프록시 뒤일 때만 true — X-Forwarded-For 를 믿는다. 아니면 헤더 위조로 우회된다.
+    trust-proxy: ${APP_TRUST_PROXY:false}
+  notify:
+    # 받는 사람으로 허용할 메일 도메인(쉼표) — 회사 밖으로 새지 않게.
+    allowed-domains: ${APP_NOTIFY_ALLOWED_DOMAINS:taratps.com}
+
+springdoc:
+  api-docs:
+    enabled: ${app.swagger.enabled}
+  swagger-ui:
+    enabled: ${app.swagger.enabled}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.tara.commonapi: INFO

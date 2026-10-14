@@ -1,0 +1,70 @@
+plugins {
+    id 'java'
+    // hrm-module-api 와 같은 버전으로 맞춘다 (2026-09-23 보안 업데이트 기준).
+    id 'org.springframework.boot' version '3.5.16'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.tara'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+// hrm-module-api 와 동일 — Boot BOM 중 알려진 취약점이 있는 것만 위로 올린다. Boot 패치가 따라오면 지운다.
+ext['tomcat.version'] = '10.1.59'
+ext['jackson-bom.version'] = '2.21.7'
+ext['log4j2.version'] = '2.25.5'
+ext['commons-lang3.version'] = '3.19.0'
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // Database (MariaDB/MySQL) + 마이그레이션
+    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+
+    // Swagger / OpenAPI
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // local 프로파일(H2 메모리 DB)
+    runtimeOnly 'com.h2database:h2'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.named('bootJar') {
+    archiveFileName = 'tara-common-api.jar'
+}
+
+tasks.named('jar') {
+    enabled = false
+}
