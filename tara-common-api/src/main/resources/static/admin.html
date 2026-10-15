@@ -927,6 +927,17 @@ function guideDoc(title, ctx, g) {
   code { font-family: Consolas, monospace; font-size: 9pt; background: #f2f4f7; padding: 0 4px; border-radius: 3px; }
   pre { font-family: Consolas, monospace; font-size: 8.5pt; background: #f6f8fa; border: 1px solid #d0d5dd; border-radius: 6px;
         padding: 10px 12px; white-space: pre-wrap; word-break: break-all; break-inside: avoid; margin: 6px 0 10px; }
+  /* Teams 화면 본뜨기 — 왼쪽 열이 하나의 말풍선처럼 이어 보이게 */
+  table.tm td { vertical-align: middle; }
+  table.tm td.tm-l { width: 52%; font: 10.5pt/1.5 "Segoe UI", "Malgun Gothic", sans-serif; color: #242424;
+    border-top: none; border-bottom: none; background: #fff; padding: 3px 14px; border-left: 1px solid #c8c6c4; border-right: 2px solid #c8c6c4; }
+  table.tm td.tm-first { border-top: 1px solid #c8c6c4; padding-top: 10px; }
+  table.tm td.tm-last { border-bottom: 1px solid #c8c6c4; padding-bottom: 10px; }
+  .tm-hl { font-size: 15pt; font-weight: 700; }
+  .tm-q { border-left: 3px solid #c8c6c4; padding-left: 10px; }
+  .tm-note { color: #888; }
+  .tm-a { color: #5b5fc7; text-decoration: underline; }
+  .tm-foot { color: #888; font-size: 8.5pt; }
   .box { border: 1px solid #fec84b; background: #fffaeb; border-radius: 6px; padding: 8px 12px; margin: 8px 0; break-inside: avoid; }
   ul { margin: 6px 0; padding-left: 20px; }
   .noprint { position: fixed; top: 12px; right: 12px; }
@@ -963,9 +974,28 @@ const GUIDES = {
       return `
 <h2>1. 개요</h2>
 <p>공용 서비스 계정으로 받는 사람에게 <b>Teams 1:1 채팅 메시지</b>를 보냅니다. 각 시스템이 Teams 계정·비밀번호를 따로 가질 필요가 없습니다.</p>
-<p>메시지는 표준 틀로 정리되어 보입니다. 필요한 칸만 채우면 됩니다.</p>
-<pre>${esc('🔔 제목                     ← type / icon + title\n본문                        ← message\n[ 강조값 크게 ]             ← highlight\n기타사항 표                 ← fields\n안내문 (작게)               ← note\n👉 버튼                     ← link + linkText\n보낸 사용처 이름')}</pre>
-<p class="meta">예) 임시 비밀번호: <code>icon</code> 🔑, <code>title</code> "TARA TPS CRM 임시 비밀번호", <code>message</code> "홍길동님, 요청하신 임시 비밀번호입니다.", <code>highlight</code> 비밀번호, <code>note</code> "본인이 요청하지 않았다면…", <code>link</code> 로그인 화면.</p>
+<p>메시지는 아래 표준 틀로 정리되어 Teams 에 보입니다. <b>보낸 칸만 그 줄이 생기고</b>, 비워 둔 칸은 줄째로 빠집니다.</p>
+
+<h3>Teams 에서 보이는 모습 — 칸별 대응</h3>
+<table class="tm">
+  <tr><th>Teams 화면 (예: CRM 임시 비밀번호)</th><th>만드는 칸</th></tr>
+  <tr><td class="tm-l tm-first"><b>🔑 TARA TPS CRM 임시 비밀번호</b></td>
+      <td><code>icon</code> (또는 <code>type</code> 이모지) + <code>title</code><br><span class="meta">제목은 굵은 한 줄. title 이 없으면 사용처 이름</span></td></tr>
+  <tr><td class="tm-l">안현모님, 요청하신 임시 비밀번호입니다.</td>
+      <td><code>message</code> <span class="meta">— 필수. 줄바꿈(\\n) 그대로</span></td></tr>
+  <tr><td class="tm-l"><span class="tm-hl">uE2Wbr3XCc</span></td>
+      <td><code>highlight</code> <span class="meta">— 크고 굵게. 비밀번호·인증번호·금액 등</span></td></tr>
+  <tr><td class="tm-l"><div class="tm-q"><b>요청 시각</b>&nbsp;&nbsp;10/15 14:30<br><b>요청 IP</b>&nbsp;&nbsp;106.246.247.58</div></td>
+      <td><code>fields</code> <span class="meta">— 라벨·값 줄 (인용 막대)</span></td></tr>
+  <tr><td class="tm-l"><span class="tm-note">이 비밀번호로 로그인하면 새 비밀번호를 바로 설정하게 됩니다.<br>본인이 요청하지 않았다면 IT지원팀으로 알려주세요.</span></td>
+      <td><code>note</code> <span class="meta">— 회색 안내문</span></td></tr>
+  <tr><td class="tm-l">👉 <a class="tm-a"><b>CRM 로그인</b></a></td>
+      <td><code>link</code> + <code>linkText</code> <span class="meta">— 문구가 없으면 "바로가기"</span></td></tr>
+  <tr><td class="tm-l tm-last"><span class="tm-foot">CRM 알림</span></td>
+      <td><span class="meta">자동 — 키에 등록된 사용처 이름 (바꿀 수 없음)</span></td></tr>
+</table>
+<p class="meta">위 그림의 칸을 JSON 으로 쓰면: <code>icon</code> 🔑 · <code>title</code> "TARA TPS CRM 임시 비밀번호" · <code>message</code> "안현모님, 요청하신 임시 비밀번호입니다." · <code>highlight</code> 비밀번호 · <code>fields</code> 요청 시각/IP · <code>note</code> 안내 두 줄 · <code>link</code> 로그인 주소 · <code>linkText</code> "CRM 로그인".
+비밀번호를 <code>message</code> 안에 섞어 넣으면 본문 글씨 그대로 보이므로, 눈에 띄어야 하는 값은 꼭 <code>highlight</code> 로 따로 보내세요.</p>
 
 <h2>2. 기본 정보</h2>
 <table>
@@ -997,7 +1027,7 @@ const GUIDES = {
 <h3>3-1. 메시지 모양</h3>
 <table>
   <tr><th>style</th><th>보이는 모양</th><th>언제</th></tr>
-  <tr><td><code>message</code> (기본)</td><td>🔔 <b>굵은 제목</b> → 본문 → 인용 블록의 기타사항 → 👉 <b>링크</b> → 보낸 곳</td><td>대부분의 알림. Teams 팝업·채팅 목록 미리보기에 제목과 내용이 그대로 보입니다</td></tr>
+  <tr><td><code>message</code> (기본)</td><td>1. 개요의 그림 그대로 — 🔔 <b>굵은 제목</b> → 본문 → <b>강조값</b> → 기타사항 → 회색 안내문 → 👉 <b>링크</b> → 보낸 곳</td><td>대부분의 알림. Teams 팝업·채팅 목록 미리보기에 제목과 내용이 그대로 보입니다</td></tr>
   <tr><td><code>card</code></td><td>종류별 색 띠 → 큰 제목 → 본문 → 정보 표 → 진짜 버튼 (Adaptive Card)</td><td>결재·승인처럼 눈에 띄어야 할 때. 단, 팝업 미리보기에는 '카드'로만 보입니다</td></tr>
 </table>
 
