@@ -151,7 +151,10 @@
       </div>
       <div style="flex:0"><button class="primary" onclick="connect()">연결</button></div>
     </div>
-    <div class="muted small-text" style="margin-top:8px">관리 토큰은 마스터 관리자에게 받으세요. 사람별 토큰으로 들어오면 처리자 이름이 자동으로 남습니다.</div>
+    <div class="muted small-text" style="margin-top:8px">
+      처음에는 <b>마스터 토큰</b>(서버 환경변수 APP_ADMIN_TOKEN)과 처리자 이름으로 들어와 <b>관리자 토큰</b> 탭에서 사람별 토큰(tadm_…)을 발급하세요.
+      이후에는 각자 발급받은 토큰으로 들어오면 처리자 이름이 자동으로 남습니다.
+    </div>
   </div>
 
   <!-- 발급 결과 (1회 표시) -->
@@ -160,7 +163,6 @@
     <div id="issuedFor" class="small-text" style="margin-top:4px"></div>
     <code id="issuedKey"></code>
     <button class="primary" onclick="copyKey()">복사</button>
-    <button id="issuedGuideBtn" class="hide" onclick="guideForIssued()">이 사용처 가이드 PDF</button>
     <button onclick="$('issued').classList.add('hide')">닫기</button>
     <div class="muted small-text" style="margin-top:8px">받는 사람에게 1:1로 전달하세요. 서버에는 해시만 저장되어 다시 볼 수 없습니다. 분실 시 "재발급"을 쓰세요.</div>
   </div>
@@ -261,7 +263,7 @@
     <section id="tab-guide" class="hide">
       <div class="card">
         <div class="cardhead"><b>API 표준 가이드</b></div>
-        <p class="muted small-text" style="margin:0 0 12px">사용처 담당자에게 키와 함께 전달하는 문서입니다. 사용처를 고르면 그 사용처의 권한·허용 IP·한도가 들어갑니다(키 원문은 들어가지 않습니다).
+        <p class="muted small-text" style="margin:0 0 12px">API 마다 표준 가이드 하나입니다. 키를 발급할 때 사용처 담당자에게 함께 전달하세요(허용 IP·분당 한도는 키와 함께 따로 알려 주세요).
           "PDF 저장"을 누르면 인쇄 창이 열립니다 — 대상을 <b>PDF로 저장</b>으로 고르세요.</p>
         <div class="guides" id="guideList"></div>
       </div>
@@ -350,7 +352,7 @@ const ACTION = { ISSUE: '발급', REISSUE: '재발급', STOP: '중지', RESUME: 
 
 let me = null;
 let clients = [], allScopes = [], stats = null, histRows = [], tokens = [];
-let editingSeq = null, regenSeq = null, tokenSeq = null, lastIssuedClientSeq = null;
+let editingSeq = null, regenSeq = null, tokenSeq = null;
 const page = { clients: 1, history: 1, tokens: 1 };
 const loaded = {};
 
@@ -467,7 +469,7 @@ function renderStats() {
     <div class="card">
       <div class="cardhead">
         <div><h2>${esc(a.label)}</h2><div class="muted small-text"><span class="chip">${esc(a.scope)}</span> <span class="mono">${esc(a.path)}</span></div></div>
-        <button class="small" onclick="openGuide('${esc(a.scope)}', null, false)">가이드 보기</button>
+        <button class="small" onclick="openGuide('${esc(a.scope)}', false)">가이드 보기</button>
       </div>
       <div class="apistats">
         <div><div class="k">발급된 키</div><div class="v">${n(a.keys)}</div><div class="muted small-text">사용 중 ${n(a.activeKeys)} · 중지 ${n(a.stoppedKeys)}</div></div>
@@ -592,7 +594,6 @@ function renderClients() {
         <button class="small" onclick="showLogs(${c.clientSeq})">발송기록</button>
         <button class="small" onclick="toggleActive(${c.clientSeq})">${c.active ? '중지' : '다시 사용'}</button>
         <button class="small danger" onclick="openRegen(${c.clientSeq})">재발급</button>
-        <button class="small" onclick="guideFor(${c.clientSeq})">가이드</button>
       </div></td>
     </tr>`).join('') || '<tr><td colspan="12" class="muted">조건에 맞는 사용처가 없습니다</td></tr>';
 }
@@ -637,8 +638,6 @@ function showIssued(kind, key, forText, clientSeq) {
   $('issuedHead').textContent = `🔑 ${kind}가 발급되었습니다 — 지금이 아니면 다시 볼 수 없습니다`;
   $('issuedKey').textContent = key;
   $('issuedFor').textContent = forText;
-  lastIssuedClientSeq = clientSeq || null;
-  $('issuedGuideBtn').classList.toggle('hide', !clientSeq);
   $('issued').classList.remove('hide');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -862,51 +861,33 @@ async function regenToken(seq) {
 
 /* ───────── 가이드 ───────── */
 
+/** API 마다 표준 가이드 하나 — 사용처별 정보(허용 IP·한도)는 키를 전달할 때 따로 알린다 */
 function renderGuides() {
-  const opts = '<option value="">사용처 선택 안 함 (공통 가이드)</option>' +
-    clients.map(c => `<option value="${c.clientSeq}">${esc(c.clientName)}${c.active ? '' : ' (중지)'}</option>`).join('');
   $('guideList').innerHTML = allScopes.map(s => {
     const g = GUIDES[s];
-    const holders = clients.filter(c => (c.scopes || []).includes(s));
     return `<div class="card guide" style="margin:0">
       <h3>${esc(scopeLabel(s) || s)}</h3>
       <div class="muted small-text"><span class="chip">${esc(s)}</span> ${g ? esc(g.summary) : '가이드 준비 중'}</div>
-      <div style="margin-top:10px"><label>사용처 (선택)</label>
-        <select id="g_client_${esc(s)}">${opts.replace(/<option value="(\d+)">/g, (m, id) =>
-          holders.some(h => String(h.clientSeq) === id) ? m : `<option value="${id}" disabled>`)}</select></div>
       <div class="dlgbtns" style="justify-content:start">
-        <button ${g ? '' : 'disabled'} onclick="openGuide('${esc(s)}', $('g_client_${esc(s)}').value, false)">미리보기</button>
-        <button class="primary" ${g ? '' : 'disabled'} onclick="openGuide('${esc(s)}', $('g_client_${esc(s)}').value, true)">PDF 저장</button>
+        <button ${g ? '' : 'disabled'} onclick="openGuide('${esc(s)}', false)">미리보기</button>
+        <button class="primary" ${g ? '' : 'disabled'} onclick="openGuide('${esc(s)}', true)">PDF 저장</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function guideFor(seq) {
-  const c = find(seq);
-  const scope = (c.scopes || []).find(s => GUIDES[s]) || (c.scopes || [])[0];
-  openGuide(scope, String(seq), true);
-}
-
-function guideForIssued() {
-  if (lastIssuedClientSeq) guideFor(lastIssuedClientSeq);
-}
-
 /** 가이드 문서를 만들어 새 창(미리보기) 또는 인쇄 창(PDF 저장)으로 연다 */
-async function openGuide(scope, clientSeq, print) {
+async function openGuide(scope, print) {
   const g = GUIDES[scope];
   if (!g) { toast('이 API 의 가이드는 아직 없습니다'); return; }
   if (!stats) await loadStats(false);
-  const c = clientSeq ? find(+clientSeq) : null;
   const ctx = {
     base: location.origin,
     label: scopeLabel(scope) || scope,
     scope,
-    client: c,
-    issuer: me ? me.name : '',
     date: new Date().toISOString().slice(0, 10),
   };
-  const title = `TARA 공용 API 가이드 - ${ctx.label}${c ? ' - ' + c.clientName : ''} (${ctx.date})`;
+  const title = `TARA 공용 API 가이드 - ${ctx.label} (${ctx.date})`;
   const html = guideDoc(title, ctx, g);
 
   if (!print) {
@@ -947,33 +928,16 @@ function guideDoc(title, ctx, g) {
   pre { font-family: Consolas, monospace; font-size: 8.5pt; background: #f6f8fa; border: 1px solid #d0d5dd; border-radius: 6px;
         padding: 10px 12px; white-space: pre-wrap; word-break: break-all; break-inside: avoid; margin: 6px 0 10px; }
   .box { border: 1px solid #fec84b; background: #fffaeb; border-radius: 6px; padding: 8px 12px; margin: 8px 0; break-inside: avoid; }
-  .cover { border: 1px solid #d0d5dd; border-radius: 8px; padding: 12px 16px; margin: 14px 0; }
-  .cover table { margin: 0; } .cover th { width: 120px; }
   ul { margin: 6px 0; padding-left: 20px; }
   .noprint { position: fixed; top: 12px; right: 12px; }
   .noprint button { padding: 8px 14px; font: inherit; cursor: pointer; }
 </style></head><body>
 <div class="noprint"><button onclick="print()">PDF 저장 / 인쇄</button></div>
 <h1>${esc(ctx.label)} API 가이드</h1>
-<div class="meta">TARA 공용 API (tara-common-api) · 권한(scope) <code>${esc(ctx.scope)}</code> · 작성일 ${esc(ctx.date)}${ctx.issuer ? ' · 발급 담당 ' + esc(ctx.issuer) : ''}</div>
-${ctx.client ? clientCover(ctx) : ''}
+<div class="meta">TARA 공용 API (tara-common-api) · 권한(scope) <code>${esc(ctx.scope)}</code> · 작성일 ${esc(ctx.date)}</div>
 ${g.body(ctx)}
 ${commonSecurity(ctx)}
 </body></html>`;
-}
-
-function clientCover(ctx) {
-  const c = ctx.client;
-  return `<div class="cover"><b>발급 정보 — ${esc(c.clientName)}</b>
-  <table>
-    <tr><th>사용처</th><td>${esc(c.clientName)}</td></tr>
-    <tr><th>담당</th><td>${esc([c.ownerDept, c.ownerName].filter(Boolean).join(' / ') || '-')}</td></tr>
-    <tr><th>API 키</th><td><code>${esc(c.keyPrefix)}…</code> (원문은 발급 담당자에게 1:1로 따로 받습니다)</td></tr>
-    <tr><th>쓸 수 있는 API</th><td>${(c.scopes || []).map(s => `<code>${esc(s)}</code> ${esc(scopeLabel(s))}`).join(', ')}</td></tr>
-    <tr><th>허용 IP</th><td>${c.allowedIps ? `<code>${esc(c.allowedIps)}</code> — 이 IP 에서만 호출됩니다` : '제한 없음'}</td></tr>
-    <tr><th>분당 한도</th><td>${c.ratePerMin}건</td></tr>
-    <tr><th>상태</th><td>${c.active ? '사용 중' : '중지 — 지금은 호출할 수 없습니다'}</td></tr>
-  </table></div>`;
 }
 
 function commonSecurity(ctx) {
@@ -981,11 +945,11 @@ function commonSecurity(ctx) {
 <ul>
   <li>API 키는 <b>서버(백엔드)에만</b> 둡니다. 브라우저 JS, 모바일 앱, 공개 저장소에 넣으면 안 됩니다.</li>
   <li>환경변수나 비밀값 저장소에 두고, 소스코드·로그·메신저에 원문을 남기지 않습니다.</li>
-  <li>키가 새어 나갔거나 담당자가 바뀌면 바로 발급 담당자에게 알려 <b>재발급</b>받습니다. 재발급하면 예전 키는 즉시 못 씁니다.</li>
+  <li>키가 새어 나갔거나 담당자가 바뀌면 바로 AI게시판(it.taratps.com)에 알려 <b>재발급</b>받습니다. 재발급하면 예전 키는 즉시 못 씁니다.</li>
   <li>호출 서버 IP 가 바뀌면 미리 알려 주세요. 등록되지 않은 IP 에서는 <code>403</code> 이 납니다.</li>
 </ul>
 <h2>문의</h2>
-<p>키 발급·재발급·IP 변경·한도 조정: ${ctx.issuer ? esc(ctx.issuer) + ' (공용 API 관리자)' : '공용 API 관리자'}</p>`;
+<p>키 발급·재발급·IP 변경·한도 조정 등 모든 문의는 <b>IT 서비스 포털 AI게시판</b>에 남겨 주세요 — <a href="https://it.taratps.com">it.taratps.com</a></p>`;
 }
 
 /* API 별 가이드 본문 — 새 공용 API 를 추가하면 여기에 한 칸 추가한다 */
@@ -993,13 +957,15 @@ const GUIDES = {
   notify: {
     summary: '사내 시스템에서 직원에게 Teams 1:1 메시지를 보냅니다.',
     body: ctx => {
-      const rate = ctx.client ? ctx.client.ratePerMin : 30;
+      const rate = 30;
       const url = ctx.base + '/api/notify/teams';
-      const sample = '{\n  "to": ["hong@taratps.com", "kim@taratps.com"],\n  "title": "결재 요청",\n  "message": "출장비 정산 결재가 올라왔습니다.\\n확인 부탁드립니다.",\n  "link": "https://grow.taratps.com/approval/123"\n}';
+      const sample = '{\n  "to": ["hong@taratps.com", "kim@taratps.com"],\n  "type": "info",\n  "title": "결재 요청이 도착했습니다",\n  "message": "출장비 정산 결재가 올라왔습니다.\\n확인 부탁드립니다.",\n  "fields": [\n    { "label": "신청자", "value": "홍길동" },\n    { "label": "금액", "value": "125,000원" },\n    { "label": "기한", "value": "10/17(금)" }\n  ],\n  "link": "https://grow.taratps.com/approval/123",\n  "linkText": "결재하러 가기"\n}';
       return `
 <h2>1. 개요</h2>
 <p>공용 서비스 계정으로 받는 사람에게 <b>Teams 1:1 채팅 메시지</b>를 보냅니다. 각 시스템이 Teams 계정·비밀번호를 따로 가질 필요가 없습니다.</p>
-<p>메시지 맨 위에 <b>보낸 사용처 이름</b>이 작게 붙고, 그 아래 제목·본문·바로가기 링크가 표시됩니다.</p>
+<p>메시지는 표준 틀로 정리되어 보입니다. 필요한 칸만 채우면 됩니다.</p>
+<pre>${esc('🔔 제목                     ← type / icon + title\n본문                        ← message\n[ 강조값 크게 ]             ← highlight\n기타사항 표                 ← fields\n안내문 (작게)               ← note\n👉 버튼                     ← link + linkText\n보낸 사용처 이름')}</pre>
+<p class="meta">예) 임시 비밀번호: <code>icon</code> 🔑, <code>title</code> "TARA TPS CRM 임시 비밀번호", <code>message</code> "홍길동님, 요청하신 임시 비밀번호입니다.", <code>highlight</code> 비밀번호, <code>note</code> "본인이 요청하지 않았다면…", <code>link</code> 로그인 화면.</p>
 
 <h2>2. 기본 정보</h2>
 <table>
@@ -1016,9 +982,24 @@ const GUIDES = {
   <tr><td><code>to</code></td><td>필수</td><td>문자열 배열, 1~20개</td><td>받는 사람 회사 메일. <code>@taratps.com</code> 만 허용. 중복은 한 번만 보냅니다</td></tr>
   <tr><td><code>title</code></td><td>선택</td><td>문자열, 100자</td><td>굵게 표시되는 제목</td></tr>
   <tr><td><code>message</code></td><td>필수</td><td>문자열, 2000자</td><td>본문. <b>일반 텍스트</b> — 줄바꿈(<code>\\n</code>)은 유지되고 HTML 태그는 글자 그대로 보입니다</td></tr>
-  <tr><td><code>link</code></td><td>선택</td><td>문자열, 500자</td><td>"바로가기" 링크. <code>http://</code> 또는 <code>https://</code> 로 시작</td></tr>
+  <tr><td><code>link</code></td><td>선택</td><td>문자열, 500자</td><td>바로가기 링크. <code>http://</code> 또는 <code>https://</code> 로 시작</td></tr>
+  <tr><td><code>linkText</code></td><td>선택</td><td>문자열, 30자</td><td>링크(버튼) 문구. 비우면 "바로가기"</td></tr>
+  <tr><td><code>type</code></td><td>선택</td><td><code>info</code> | <code>success</code> | <code>warning</code> | <code>urgent</code></td><td>알림 종류 — 제목 앞 이모지가 🔔 / ✅ / ⚠️ / 🚨 로 바뀝니다. <code>urgent</code> 는 Teams '중요' 표시가 붙습니다. 기본 <code>info</code></td></tr>
+  <tr><td><code>icon</code></td><td>선택</td><td>이모지 1개</td><td>제목 앞 이모지를 직접 지정 (예: 🔑 📅 💰). 주면 <code>type</code> 의 이모지 대신 씁니다</td></tr>
+  <tr><td><code>highlight</code></td><td>선택</td><td>문자열, 100자</td><td>본문 아래에 <b>크게</b> 보여 줄 값 — 임시 비밀번호·인증번호·금액·측정값 등</td></tr>
+  <tr><td><code>fields</code></td><td>선택</td><td>배열, 10개</td><td>기타사항 표. 각 항목 <code>{"label": "50자", "value": "300자"}</code></td></tr>
+  <tr><td><code>note</code></td><td>선택</td><td>문자열, 500자</td><td>맨 아래 <b>작은 회색 안내문</b> — 예: 본인이 요청하지 않았다면 IT지원팀으로 알려주세요</td></tr>
+  <tr><td><code>style</code></td><td>선택</td><td><code>message</code> | <code>card</code></td><td>메시지 모양 (아래 3-1). 기본 <code>message</code></td></tr>
 </table>
 <pre>${esc(sample)}</pre>
+<p class="meta">필수는 <code>to</code>, <code>message</code> 두 개뿐입니다. 나머지를 빼면 그만큼 간단한 메시지가 됩니다.</p>
+
+<h3>3-1. 메시지 모양</h3>
+<table>
+  <tr><th>style</th><th>보이는 모양</th><th>언제</th></tr>
+  <tr><td><code>message</code> (기본)</td><td>🔔 <b>굵은 제목</b> → 본문 → 인용 블록의 기타사항 → 👉 <b>링크</b> → 보낸 곳</td><td>대부분의 알림. Teams 팝업·채팅 목록 미리보기에 제목과 내용이 그대로 보입니다</td></tr>
+  <tr><td><code>card</code></td><td>종류별 색 띠 → 큰 제목 → 본문 → 정보 표 → 진짜 버튼 (Adaptive Card)</td><td>결재·승인처럼 눈에 띄어야 할 때. 단, 팝업 미리보기에는 '카드'로만 보입니다</td></tr>
+</table>
 
 <h2>4. 응답</h2>
 <p>모든 응답은 <code>{"success": true|false, ...}</code> 모양입니다. 일부 받는 사람만 실패해도 HTTP 200 이고, <code>results</code> 에 사람별 결과가 옵니다.</p>
@@ -1040,55 +1021,149 @@ const GUIDES = {
 
 <h2>5. 한도 · 재시도</h2>
 <ul>
-  <li>분당 한도: <b>${rate}건</b>${ctx.client ? '' : ' (기본값, 사용처마다 다름)'} — <b>받는 사람 수</b>로 셉니다. 20명에게 한 번 보내면 20건입니다.</li>
+  <li>분당 한도: <b>${rate}건</b> (기본값 — 사용처마다 다를 수 있습니다) — <b>받는 사람 수</b>로 셉니다. 20명에게 한 번 보내면 20건입니다.</li>
   <li><code>429</code> 를 받으면 1분 뒤 다시 보내세요. 대량 알림은 나눠서 천천히 보내야 합니다.</li>
   <li><code>4xx</code> 는 다시 보내도 같은 결과입니다(429 제외). <code>5xx</code>·네트워크 오류만 간격을 두고 재시도하세요.</li>
   <li>재시도할 때는 <code>results</code> 에서 <b>실패한 사람만</b> 다시 보내야 중복 메시지가 가지 않습니다.</li>
 </ul>
 
 <h2>6. 예제</h2>
+<p>아래 예제는 <b>모든 칸을 다 적은 형태</b>입니다. 필수는 <code>to</code>, <code>message</code> 뿐이고, 나머지는 <b>필요한 것만 남기고 지우면</b> 그 칸이 빠진 채로 보입니다
+(값을 <code>null</code> 이나 빈 문자열로 보내도 빠집니다). 시스템마다 자주 쓰는 모양을 함수 하나로 감싸 두면 편합니다.</p>
+
+<h3>전체 칸 JSON 틀</h3>
+<pre>${esc(`{
+  "to":        ["hong@taratps.com"],               // 필수 · 받는 사람(최대 20명)
+  "message":   "출장비 정산 결재가 올라왔습니다.",     // 필수 · 본문(줄바꿈은 \\n)
+
+  "type":      "info",                             // 선택 · info 🔔 / success ✅ / warning ⚠️ / urgent 🚨
+  "icon":      "📝",                               // 선택 · 이모지 직접 지정(주면 type 이모지 대신)
+  "title":     "결재 요청이 도착했습니다",            // 선택 · 굵은 제목(없으면 사용처 이름)
+  "highlight": "125,000원",                        // 선택 · 크게 보일 값(비밀번호·인증번호·금액 등)
+  "fields":    [                                   // 선택 · 기타사항 표(최대 10줄)
+    { "label": "신청자", "value": "홍길동" },
+    { "label": "기한",   "value": "10/17(금)" }
+  ],
+  "note":      "기한이 지나면 자동 반려됩니다.",       // 선택 · 맨 아래 작은 회색 안내문
+  "link":      "https://grow.taratps.com/approval/123", // 선택 · 버튼 주소
+  "linkText":  "결재하러 가기",                      // 선택 · 버튼 문구(없으면 "바로가기")
+  "style":     "message"                           // 선택 · message(기본) / card
+}`)}</pre>
+<p class="meta">※ 위의 <code>// 설명</code> 은 읽기용입니다. 실제 JSON 에는 주석을 넣으면 안 됩니다.</p>
+
+<h3>가장 간단한 예</h3>
+<pre>${esc(`{ "to": ["hong@taratps.com"], "message": "배치 작업이 끝났습니다." }`)}</pre>
+
 <h3>curl</h3>
 <pre>${esc(`curl -X POST ${url} \\
   -H "X-Api-Key: $TARA_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"to":["hong@taratps.com"],"title":"결재 요청","message":"결재가 올라왔습니다.","link":"https://grow.taratps.com/approval/123"}'`)}</pre>
+  -d '{
+    "to": ["hong@taratps.com"],
+    "type": "info",
+    "title": "결재 요청이 도착했습니다",
+    "message": "출장비 정산 결재가 올라왔습니다.\\n확인 부탁드립니다.",
+    "highlight": "125,000원",
+    "fields": [{"label":"신청자","value":"홍길동"},{"label":"기한","value":"10/17(금)"}],
+    "note": "기한이 지나면 자동 반려됩니다.",
+    "link": "https://grow.taratps.com/approval/123",
+    "linkText": "결재하러 가기"
+  }'`)}</pre>
+
 <h3>Java (Spring RestClient)</h3>
-<pre>${esc(`RestClient client = RestClient.builder()
-        .baseUrl("${ctx.base}")
-        .defaultHeader("X-Api-Key", System.getenv("TARA_API_KEY"))
-        .build();
+<pre>${esc(`/** 공용 Teams 알림 — 필수는 to·message, 나머지는 null 이면 보내지 않는다 */
+public class TaraNotify {
 
-Map<String, Object> body = Map.of(
-        "to", List.of("hong@taratps.com"),
-        "title", "결재 요청",
-        "message", "결재가 올라왔습니다.\\n확인 부탁드립니다.",
-        "link", "https://grow.taratps.com/approval/123");
+    private final RestClient client = RestClient.builder()
+            .baseUrl("${ctx.base}")
+            .defaultHeader("X-Api-Key", System.getenv("TARA_API_KEY"))
+            .build();
 
-Map<?, ?> res = client.post().uri("/api/notify/teams")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(body)
-        .retrieve()
-        .body(Map.class);`)}</pre>
+    public record Field(String label, String value) {}
+
+    public Map<?, ?> send(List<String> to, String message,
+                          String type, String icon, String title, String highlight,
+                          List<Field> fields, String note, String link, String linkText, String style) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("to", to);
+        body.put("message", message);
+        putIf(body, "type", type);
+        putIf(body, "icon", icon);
+        putIf(body, "title", title);
+        putIf(body, "highlight", highlight);
+        if (fields != null && !fields.isEmpty()) body.put("fields", fields);
+        putIf(body, "note", note);
+        putIf(body, "link", link);
+        putIf(body, "linkText", linkText);
+        putIf(body, "style", style);
+
+        return client.post().uri("/api/notify/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(Map.class);
+    }
+
+    private static void putIf(Map<String, Object> m, String k, String v) {
+        if (v != null && !v.isBlank()) m.put(k, v);
+    }
+}
+
+// 사용 — 안 쓰는 칸은 null
+notify.send(List.of("hong@taratps.com"), "출장비 정산 결재가 올라왔습니다.\\n확인 부탁드립니다.",
+        "info", null, "결재 요청이 도착했습니다", "125,000원",
+        List.of(new TaraNotify.Field("신청자", "홍길동"), new TaraNotify.Field("기한", "10/17(금)")),
+        "기한이 지나면 자동 반려됩니다.", "https://grow.taratps.com/approval/123", "결재하러 가기", null);`)}</pre>
+
 <h3>Python (requests)</h3>
 <pre>${esc(`import os, requests
 
-res = requests.post(
-    "${url}",
-    headers={"X-Api-Key": os.environ["TARA_API_KEY"]},
-    json={"to": ["hong@taratps.com"], "title": "결재 요청",
-          "message": "결재가 올라왔습니다.\\n확인 부탁드립니다."},
-    timeout=60,
-)
-data = res.json()
-if not data["success"]:
-    print(data["code"], data["message"])`)}</pre>
+def tara_notify(to, message, *, type=None, icon=None, title=None, highlight=None,
+                fields=None, note=None, link=None, link_text=None, style=None):
+    """공용 Teams 알림 — 필수는 to·message, None 인 칸은 보내지 않는다"""
+    body = {"to": to, "message": message, "type": type, "icon": icon, "title": title,
+            "highlight": highlight, "fields": fields, "note": note,
+            "link": link, "linkText": link_text, "style": style}
+    body = {k: v for k, v in body.items() if v not in (None, "", [])}
+    res = requests.post("${url}",
+                        headers={"X-Api-Key": os.environ["TARA_API_KEY"]},
+                        json=body, timeout=60)
+    data = res.json()
+    if not data["success"]:
+        raise RuntimeError(f'{data["code"]}: {data["message"]}')
+    return data["data"]
+
+# 사용 — 필요한 칸만 이름으로 넘긴다
+tara_notify(["hong@taratps.com"], "출장비 정산 결재가 올라왔습니다.\\n확인 부탁드립니다.",
+            title="결재 요청이 도착했습니다", highlight="125,000원",
+            fields=[{"label": "신청자", "value": "홍길동"}, {"label": "기한", "value": "10/17(금)"}],
+            note="기한이 지나면 자동 반려됩니다.",
+            link="https://grow.taratps.com/approval/123", link_text="결재하러 가기")`)}</pre>
+
 <h3>Node.js (fetch)</h3>
-<pre>${esc(`const res = await fetch("${url}", {
-  method: "POST",
-  headers: { "X-Api-Key": process.env.TARA_API_KEY, "Content-Type": "application/json" },
-  body: JSON.stringify({ to: ["hong@taratps.com"], title: "결재 요청", message: "결재가 올라왔습니다." }),
-});
-const data = await res.json();`)}</pre>
+<pre>${esc(`// 공용 Teams 알림 — 필수는 to·message. undefined 인 칸은 JSON 에서 자동으로 빠진다
+async function taraNotify({ to, message, type, icon, title, highlight, fields, note, link, linkText, style }) {
+  const res = await fetch("${url}", {
+    method: "POST",
+    headers: { "X-Api-Key": process.env.TARA_API_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ to, message, type, icon, title, highlight, fields, note, link, linkText, style }),
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.code + ": " + data.message);
+  return data.data;
+}
+
+// 사용 — 필요한 칸만 넘긴다
+await taraNotify({
+  to: ["hong@taratps.com"],
+  title: "결재 요청이 도착했습니다",
+  message: "출장비 정산 결재가 올라왔습니다.\\n확인 부탁드립니다.",
+  highlight: "125,000원",
+  fields: [{ label: "신청자", value: "홍길동" }, { label: "기한", value: "10/17(금)" }],
+  note: "기한이 지나면 자동 반려됩니다.",
+  link: "https://grow.taratps.com/approval/123",
+  linkText: "결재하러 가기",
+});`)}</pre>
 <div class="box">키는 서버 쪽 코드에서만 씁니다. 브라우저에서 이 API 를 직접 부르지 마세요 — 키가 그대로 노출됩니다.</div>`;
     },
   },

@@ -73,6 +73,7 @@ curl -X POST http://localhost:8083/api/notify/teams \
 
 - 키에 `notify` 권한(scope)이 있어야 합니다
 - `to` 최대 20명, `message` 최대 2000자(일반 텍스트 — 줄바꿈 유지, 태그는 글자 그대로 표시), `link`는 http/https만
+- 선택: `type`(info·success·warning·urgent), `icon`(이모지), `highlight`(크게 보일 값), `fields`([{label,value}] 10개), `note`(작은 안내문), `linkText`, `style`(message·card). 자세한 모양은 관리 화면 가이드 PDF 참고
 - 응답: `{"success":true,"data":{"total":1,"success":1,"failed":0,"results":[{"to":"...","success":true}]}}`
 - 오류 코드: `API_KEY_INVALID`(401, 키 없음·오류), `API_KEY_FORBIDDEN`(403, 사용 중지·IP·scope 없음), `NOTIFY_FORBIDDEN`(403, 받는 사람 도메인), `NOTIFY_RATE_LIMIT`(429), `NOTIFY_UNAVAILABLE`(503), `INVALID_INPUT`(400)
 

@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
  * 키·IP 인증은 ApiKeyAuthFilter 가 끝내고 사용처(ApiClient)를 넘겨준다.
  * 여기서는: 받는 사람 도메인 → 분당 한도 → 사람마다 발송·기록.
  * 서비스 계정 비밀번호는 이 서버 환경변수(MS_*)에만 있고 사용처는 키만 가진다.
- * 본문은 일반 텍스트로 받아 HTML 특수문자를 바꾼 뒤 보낸다 — 사용처가 링크·태그를 몰래 심지 못하게.
+ * 메시지 모양(이모지 제목·본문·기타사항·링크, 또는 카드)은 TeamsMessages 가 만든다 — 사용처 글자는 일반 텍스트로만 다룬다.
  */
 @Service
 @Slf4j
@@ -69,13 +69,15 @@ public class NotifyService {
         }
         reserve(client, to.size());
 
-        String html = toHtml(client.getClientName(), req.title(), req.message(), link);
+        Map<String, Object> message = TeamsMessages.chatMessage(new TeamsMessages.Spec(client.getClientName(),
+                req.type(), req.icon(), req.title(), req.message(), req.highlight(), req.fields(), req.note(),
+                link, req.linkText(), req.style()));
         List<Recipient> results = new ArrayList<>();
         int ok = 0;
         for (String r : to) {
             String err = null;
             try {
-                teams.sendToUser(r, html);
+                teams.sendMessageToUser(r, message);
                 ok++;
             } catch (Exception e) {
                 err = shortError(e);
@@ -110,21 +112,6 @@ public class NotifyService {
             }
             for (int i = 0; i < count; i++) q.addLast(now);
         }
-    }
-
-    /* ───────── 메시지 ───────── */
-
-    static String toHtml(String clientName, String title, String message, String link) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<p style=\"color:#888;font-size:12px\">").append(esc(clientName)).append("</p>");
-        if (StringUtils.hasText(title)) sb.append("<p><b>").append(esc(title.trim())).append("</b></p>");
-        sb.append("<p>").append(esc(message.trim()).replace("\r\n", "\n").replace("\n", "<br>")).append("</p>");
-        if (link != null) sb.append("<p><a href=\"").append(esc(link)).append("\">바로가기</a></p>");
-        return sb.toString();
-    }
-
-    static String esc(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
     }
 
     /** Graph 오류 본문이 길어서 앞부분만 — 비밀값은 들어 있지 않다(토큰 응답은 예외 메시지에 안 실린다) */

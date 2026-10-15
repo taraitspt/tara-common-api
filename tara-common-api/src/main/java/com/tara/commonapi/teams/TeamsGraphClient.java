@@ -118,6 +118,14 @@ public class TeamsGraphClient {
      * 실패 시 예외를 던진다(호출부에서 '전송 실패'로 처리).
      */
     public void sendToUser(String recipientEmail, String htmlContent) {
+        sendMessageToUser(recipientEmail, Map.of("body", Map.of("contentType", "html", "content", htmlContent)));
+    }
+
+    /**
+     * 수신자에게 Teams 1:1 채팅으로 chatMessage 본문을 그대로 전송 — 카드(attachments)·중요도(importance)를 쓸 때.
+     * 실패 시 예외를 던진다.
+     */
+    public void sendMessageToUser(String recipientEmail, Map<String, Object> chatMessage) {
         if (!isConfigured()) {
             throw new IllegalStateException("MS Graph(msgraph.*) 미설정 — Teams 전송 불가");
         }
@@ -148,7 +156,7 @@ public class TeamsGraphClient {
         if (chatId == null) throw new IllegalStateException("Teams 채팅 생성 실패");
 
         graph.post().uri("/chats/{id}/messages", chatId)
-                .body(Map.of("body", Map.of("contentType", "html", "content", htmlContent)))
+                .body(chatMessage)
                 .retrieve()
                 .toBodilessEntity();
 
