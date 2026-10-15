@@ -1,8 +1,11 @@
 package com.tara.commonapi.client.controller;
 
+import com.tara.commonapi.client.ApiScopes;
 import com.tara.commonapi.client.dto.ClientDtos.ClientItem;
 import com.tara.commonapi.client.dto.ClientDtos.ClientSave;
+import com.tara.commonapi.client.dto.ClientDtos.HistoryItem;
 import com.tara.commonapi.client.dto.ClientDtos.IssuedKey;
+import com.tara.commonapi.client.dto.ClientDtos.Reissue;
 import com.tara.commonapi.client.service.ApiClientAdminService;
 import com.tara.commonapi.global.dto.ApiResponse;
 import com.tara.commonapi.notify.dto.NotifyDtos.LogItem;
@@ -30,6 +33,12 @@ public class ApiClientAdminController {
         return ApiResponse.ok(service.list());
     }
 
+    @Operation(summary = "발급 가능한 권한(scope) 목록 — 관리 화면의 선택지")
+    @GetMapping("/scopes")
+    public ApiResponse<List<String>> scopes() {
+        return ApiResponse.ok(ApiScopes.ALL.stream().sorted().toList());
+    }
+
     @Operation(summary = "사용처 등록 — 응답의 apiKey 는 이때 한 번만 보인다. scopes 를 비우면 [\"notify\"]")
     @PostMapping
     public ApiResponse<IssuedKey> create(@Valid @RequestBody ClientSave request) {
@@ -43,10 +52,23 @@ public class ApiClientAdminController {
         return ApiResponse.ok();
     }
 
-    @Operation(summary = "키 재발급 — 옛 키는 즉시 못 쓴다")
+    @Operation(summary = "키 재발급 — 옛 키는 즉시 못 쓴다. body 의 받는 사람·사유는 이력에 남는다(선택)")
     @PostMapping("/{seq}/regenerate")
-    public ApiResponse<IssuedKey> regenerate(@PathVariable Long seq) {
-        return ApiResponse.ok(service.regenerate(seq));
+    public ApiResponse<IssuedKey> regenerate(@PathVariable Long seq,
+                                             @Valid @RequestBody(required = false) Reissue request) {
+        return ApiResponse.ok(service.regenerate(seq, request));
+    }
+
+    @Operation(summary = "발급·변경 이력 전체 (최근 순)")
+    @GetMapping("/history")
+    public ApiResponse<List<HistoryItem>> allHistory(@RequestParam(defaultValue = "200") int limit) {
+        return ApiResponse.ok(service.history(null, limit));
+    }
+
+    @Operation(summary = "사용처별 발급·변경 이력 (최근 순)")
+    @GetMapping("/{seq}/history")
+    public ApiResponse<List<HistoryItem>> history(@PathVariable Long seq, @RequestParam(defaultValue = "200") int limit) {
+        return ApiResponse.ok(service.history(seq, limit));
     }
 
     @Operation(summary = "발송 기록 (최근 순)")

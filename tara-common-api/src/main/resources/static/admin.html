@@ -22,7 +22,7 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text);
          font: 14px/1.6 "Segoe UI", "Malgun Gothic", system-ui, sans-serif; }
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 80px; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 16px 80px; }
   h1 { font-size: 20px; margin: 0 0 4px; }
   .sub { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
@@ -32,7 +32,7 @@
     border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
   input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
   button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px;
-    background: var(--card); color: var(--text); font: inherit; cursor: pointer; }
+    background: var(--card); color: var(--text); font: inherit; cursor: pointer; white-space: nowrap; }
   button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
   button.small { padding: 3px 8px; font-size: 12px; }
   button.danger { color: var(--danger); }
@@ -44,11 +44,12 @@
   th { color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
   tr:last-child td { border-bottom: none; }
   .chip { display: inline-block; background: var(--chip-bg); border-radius: 99px;
-    padding: 1px 9px; font-size: 12px; margin: 0 2px 2px 0; }
+    padding: 1px 9px; font-size: 12px; margin: 0 2px 2px 0; white-space: nowrap; }
   .on { color: var(--ok); font-weight: 600; } .off { color: var(--danger); font-weight: 600; }
   .muted { color: var(--muted); } .mono { font-family: Consolas, monospace; font-size: 12px; }
+  .small-text { font-size: 12px; }
   .keybox { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 8px;
-    padding: 14px; margin-top: 12px; }
+    padding: 14px; margin-bottom: 16px; }
   .keybox code { display: block; font-family: Consolas, monospace; font-size: 14px;
     word-break: break-all; margin: 8px 0; padding: 10px; background: var(--card);
     border: 1px solid var(--line); border-radius: 6px; }
@@ -59,19 +60,40 @@
     font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; }
   .scrollx { overflow-x: auto; }
   td .btns { display: flex; gap: 4px; flex-wrap: wrap; }
+  .cardhead { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    margin-bottom: 8px; flex-wrap: wrap; }
+  .cardhead .btns { display: flex; gap: 4px; }
+  .scopes { display: flex; gap: 12px; flex-wrap: wrap; padding: 6px 0; }
+  .scopes label { display: inline-flex; align-items: center; gap: 4px; margin: 0;
+    font-size: 13px; color: var(--text); cursor: pointer; }
+  .scopes input { width: auto; }
+  dialog { border: 1px solid var(--line); border-radius: 10px; padding: 18px;
+    background: var(--card); color: var(--text); width: min(640px, calc(100vw - 32px)); }
+  dialog::backdrop { background: rgba(0,0,0,.4); }
+  dialog h2 { font-size: 16px; margin: 0 0 12px; }
+  .dlgbtns { display: flex; justify-content: end; gap: 8px; margin-top: 14px; }
+  .act { display: inline-block; border-radius: 4px; padding: 0 6px; font-size: 12px; font-weight: 600;
+    white-space: nowrap; background: var(--chip-bg); }
+  .act.ISSUE, .act.REISSUE { color: var(--accent); }
+  .act.STOP { color: var(--danger); }
+  .act.RESUME { color: var(--ok); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>공용 API 사용처 관리</h1>
-  <p class="sub">사용처(부서 시스템) 등록 · API 키 발급 · 중지 · 발송 기록 — tara-common-api</p>
+  <p class="sub">사용처(부서 시스템) 등록 · API 키 발급 · 누구에게 발급했는지 이력 · 중지 · 발송 기록 — tara-common-api</p>
 
   <!-- 토큰 -->
   <div class="card">
     <div class="row">
       <div style="flex:3">
-        <label>관리 토큰 (X-Admin-Token) — 이 브라우저 탭에서만 유지되고 저장되지 않습니다</label>
+        <label>관리 토큰 (X-Admin-Token) — 이 탭에서만 쓰고 저장하지 않습니다</label>
         <input id="token" type="password" placeholder="관리 토큰을 붙여넣으세요" autocomplete="off">
+      </div>
+      <div style="flex:1">
+        <label>처리자 이름 * — 발급·변경 이력에 남습니다</label>
+        <input id="operator" maxlength="20" placeholder="예: 홍길동">
       </div>
       <div style="flex:0"><button class="primary" onclick="connect()">연결</button></div>
     </div>
@@ -80,10 +102,11 @@
   <!-- 발급 결과 (1회 표시) -->
   <div id="issued" class="keybox hide">
     <b>🔑 키가 발급되었습니다 — 지금이 아니면 다시 볼 수 없습니다</b>
+    <div id="issuedFor" class="small-text" style="margin-top:4px"></div>
     <code id="issuedKey"></code>
     <button class="primary" onclick="copyKey()">키 복사</button>
     <button onclick="document.getElementById('issued').classList.add('hide')">닫기</button>
-    <div class="muted" style="margin-top:8px">해당 부서 담당자에게 1:1로 전달하세요. 서버에는 해시만 저장되어 재조회가 불가능합니다. 분실 시 "재발급"을 쓰세요.</div>
+    <div class="muted small-text" style="margin-top:8px">받는 사람에게 1:1로 전달하세요. 서버에는 해시만 저장되어 다시 볼 수 없습니다. 분실 시 "재발급"을 쓰세요.</div>
   </div>
 
   <!-- 등록 -->
@@ -94,14 +117,19 @@
         <div><label>사용처 이름 *</label><input id="c_name" placeholder="예: 영업관리 GROW"></div>
         <div><label>담당 부서</label><input id="c_dept" placeholder="예: IT지원팀"></div>
         <div><label>담당자</label><input id="c_owner" placeholder="예: 홍길동"></div>
+        <div><label>키 받는 사람 * (이력에 남음)</label><input id="c_issuedTo" maxlength="100" placeholder="예: 홍길동 (dksah@taratps.com)"></div>
       </div>
       <div class="row" style="margin-top:10px">
         <div style="flex:2"><label>허용 IP/CIDR (쉼표 구분, 비우면 제한 없음 — 운영은 꼭 입력)</label>
           <input id="c_ips" placeholder="예: 52.78.211.240/32"></div>
         <div><label>분당 한도 (기본 30, 대량 리마인드면 150~300)</label><input id="c_rate" type="number" min="1" max="300" placeholder="30"></div>
       </div>
+      <div style="margin-top:10px">
+        <label>권한 (쓸 수 있는 API) — 하나도 안 고르면 notify</label>
+        <div class="scopes" id="c_scopes"></div>
+      </div>
       <div class="row" style="margin-top:10px">
-        <div style="flex:2"><label>메모</label><input id="c_memo" placeholder="예: 결재 알림용, 2026-10-14 발급"></div>
+        <div style="flex:2"><label>메모</label><input id="c_memo" placeholder="예: 결재 알림용"></div>
         <div style="flex:0"><button class="primary" onclick="createClient()">등록 + 키 발급</button></div>
       </div>
     </details>
@@ -109,22 +137,37 @@
 
   <!-- 목록 -->
   <div class="card hide" id="listCard">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div class="cardhead">
       <b>사용처 목록</b>
-      <button class="small" onclick="loadClients()">새로고침</button>
+      <div class="btns">
+        <button class="small" onclick="showHistory(null)">전체 발급 이력</button>
+        <button class="small" onclick="loadClients()">새로고침</button>
+      </div>
     </div>
     <div class="scrollx"><table id="tbl">
       <thead><tr>
-        <th>#</th><th>사용처</th><th>담당</th><th>키</th><th>권한</th><th>허용 IP</th>
+        <th>#</th><th>사용처</th><th>담당</th><th>키</th><th>현재 키 받은 사람</th><th>권한</th><th>허용 IP</th>
         <th>한도/분</th><th>상태</th><th>최근 사용</th><th>30일 발송</th><th>관리</th>
       </tr></thead>
       <tbody></tbody>
     </table></div>
   </div>
 
+  <!-- 발급·변경 이력 -->
+  <div class="card hide" id="histCard">
+    <div class="cardhead">
+      <b id="histTitle">발급·변경 이력</b>
+      <button class="small" onclick="document.getElementById('histCard').classList.add('hide')">닫기</button>
+    </div>
+    <div class="scrollx"><table id="histTbl">
+      <thead><tr><th>시각</th><th>사용처</th><th>구분</th><th>키</th><th>받은 사람</th><th>내용</th><th>처리자</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+
   <!-- 발송 기록 -->
   <div class="card hide" id="logCard">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div class="cardhead">
       <b id="logTitle">발송 기록</b>
       <button class="small" onclick="document.getElementById('logCard').classList.add('hide')">닫기</button>
     </div>
@@ -134,34 +177,99 @@
     </table></div>
   </div>
 </div>
+
+<!-- 수정 -->
+<dialog id="editDlg">
+  <h2 id="e_title">사용처 수정</h2>
+  <div class="row">
+    <div><label>사용처 이름 *</label><input id="e_name"></div>
+    <div><label>담당 부서</label><input id="e_dept"></div>
+    <div><label>담당자</label><input id="e_owner"></div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div style="flex:2"><label>허용 IP/CIDR (쉼표 구분, 비우면 제한 없음)</label><input id="e_ips"></div>
+    <div><label>분당 한도 (1~300)</label><input id="e_rate" type="number" min="1" max="300"></div>
+  </div>
+  <div style="margin-top:10px">
+    <label>권한 (쓸 수 있는 API) — 최소 하나</label>
+    <div class="scopes" id="e_scopes"></div>
+  </div>
+  <div style="margin-top:10px"><label>메모</label><input id="e_memo"></div>
+  <div class="muted small-text" style="margin-top:10px">키 값은 바뀌지 않습니다. 변경 내용은 저장 즉시 적용되고 이력에 남습니다.</div>
+  <div class="dlgbtns">
+    <button onclick="document.getElementById('editDlg').close()">취소</button>
+    <button class="primary" onclick="saveEdit()">저장</button>
+  </div>
+</dialog>
+
+<!-- 재발급 -->
+<dialog id="regenDlg">
+  <h2 id="r_title">키 재발급</h2>
+  <div class="keybox" style="margin-bottom:12px">예전 키는 <b>즉시 무효</b>가 됩니다 — 사용 중인 시스템에 새 키를 바로 전달해야 합니다.</div>
+  <div class="row">
+    <div><label>새 키 받는 사람 *</label><input id="r_issuedTo" maxlength="100"></div>
+  </div>
+  <div style="margin-top:10px"><label>사유</label><input id="r_reason" maxlength="500" placeholder="예: 담당자 변경, 키 유출 의심, 분실"></div>
+  <div class="dlgbtns">
+    <button onclick="document.getElementById('regenDlg').close()">취소</button>
+    <button class="primary" onclick="doRegen()">재발급</button>
+  </div>
+</dialog>
 <div id="msg"></div>
 
 <script>
 let clients = [];
+let allScopes = [];
+let editingSeq = null;
+let regenSeq = null;
 
-function token() { return document.getElementById('token').value.trim(); }
+const ACTION = { ISSUE: '발급', REISSUE: '재발급', STOP: '중지', RESUME: '재개', UPDATE: '수정' };
+
+function $(id) { return document.getElementById(id); }
+function token() { return $('token').value.trim(); }
+function operator() { return $('operator').value.trim(); }
+
+// 처리자 이름만 이 브라우저에 기억한다(토큰은 저장하지 않는다)
+try { $('operator').value = localStorage.getItem('tara-admin-operator') || ''; } catch {}
 
 function toast(t) {
-  const m = document.getElementById('msg');
+  const m = $('msg');
   m.textContent = t; m.style.opacity = 1;
   setTimeout(() => m.style.opacity = 0, 2500);
 }
 
 async function api(path, opts = {}) {
-  opts.headers = Object.assign({ 'X-Admin-Token': token(), 'Content-Type': 'application/json' }, opts.headers || {});
+  opts.headers = Object.assign({
+    'X-Admin-Token': token(),
+    'X-Admin-Operator': encodeURIComponent(operator()),
+    'Content-Type': 'application/json',
+  }, opts.headers || {});
   let res, body;
   try { res = await fetch(path, opts); body = await res.json(); }
-  catch (e) { toast('서버에 연결할 수 없습니다'); throw e; }
+  catch (e) { toast('서버에 연결할 수 없습니다 (' + (res ? res.status : '네트워크') + ')'); throw e; }
   if (!body.success) { toast((body.code || '') + ' — ' + (body.message || '요청 실패')); throw new Error(body.message); }
   return body.data;
 }
 
 async function connect() {
   if (!token()) { toast('관리 토큰을 입력하세요'); return; }
+  if (!operator()) { toast('처리자 이름을 입력하세요 — 이력에 남습니다'); $('operator').focus(); return; }
+  try { localStorage.setItem('tara-admin-operator', operator()); } catch {}
   await loadClients();
-  document.getElementById('createCard').classList.remove('hide');
-  document.getElementById('listCard').classList.remove('hide');
+  allScopes = await api('/api/admin/clients/scopes');
+  renderScopes('c_scopes', []);
+  $('createCard').classList.remove('hide');
+  $('listCard').classList.remove('hide');
   toast('연결됨');
+}
+
+function renderScopes(boxId, checked) {
+  $(boxId).innerHTML = allScopes.map(s =>
+    `<label><input type="checkbox" value="${esc(s)}"${checked.includes(s) ? ' checked' : ''}> ${esc(s)}</label>`).join('');
+}
+
+function checkedScopes(boxId) {
+  return [...document.querySelectorAll(`#${boxId} input:checked`)].map(i => i.value);
 }
 
 function esc(s) { return (s ?? '').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -173,9 +281,11 @@ async function loadClients() {
   tb.innerHTML = clients.map(c => `
     <tr>
       <td>${c.clientSeq}</td>
-      <td><b>${esc(c.clientName)}</b>${c.memo ? `<div class="muted" style="font-size:12px">${esc(c.memo)}</div>` : ''}</td>
+      <td><b>${esc(c.clientName)}</b>${c.memo ? `<div class="muted small-text">${esc(c.memo)}</div>` : ''}</td>
       <td>${esc(c.ownerDept || '')}${c.ownerName ? '<br>' + esc(c.ownerName) : ''}</td>
       <td class="mono">${esc(c.keyPrefix)}…</td>
+      <td>${c.lastIssuedTo ? esc(c.lastIssuedTo) : '<span class="muted">-</span>'}
+          <div class="muted small-text">${dt(c.lastIssuedAt)}</div></td>
       <td>${(c.scopes || []).map(s => `<span class="chip">${esc(s)}</span>`).join('')}</td>
       <td class="mono">${esc(c.allowedIps || '제한 없음')}</td>
       <td>${c.ratePerMin}</td>
@@ -183,38 +293,46 @@ async function loadClients() {
       <td class="muted">${dt(c.lastUsedAt)}</td>
       <td>${c.sent30d}건${c.failed30d ? ` <span class="off">(실패 ${c.failed30d})</span>` : ''}</td>
       <td><div class="btns">
-        <button class="small" onclick="showLogs(${c.clientSeq})">기록</button>
+        <button class="small" onclick="openEdit(${c.clientSeq})">수정</button>
+        <button class="small" onclick="showHistory(${c.clientSeq})">이력</button>
+        <button class="small" onclick="showLogs(${c.clientSeq})">발송기록</button>
         <button class="small" onclick="toggleActive(${c.clientSeq})">${c.active ? '중지' : '다시 사용'}</button>
-        <button class="small danger" onclick="regen(${c.clientSeq})">재발급</button>
+        <button class="small danger" onclick="openRegen(${c.clientSeq})">재발급</button>
       </div></td>
-    </tr>`).join('') || '<tr><td colspan="11" class="muted">등록된 사용처가 없습니다</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="12" class="muted">등록된 사용처가 없습니다</td></tr>';
 }
 
 async function createClient() {
-  const name = document.getElementById('c_name').value.trim();
+  const name = $('c_name').value.trim();
   if (!name) { toast('사용처 이름을 입력하세요'); return; }
-  const rate = parseInt(document.getElementById('c_rate').value, 10);
+  const issuedTo = $('c_issuedTo').value.trim();
+  if (!issuedTo) { toast('키 받는 사람을 입력하세요'); $('c_issuedTo').focus(); return; }
+  const rate = parseInt($('c_rate').value, 10);
   const data = await api('/api/admin/clients', { method: 'POST', body: JSON.stringify({
     clientName: name,
-    ownerDept: document.getElementById('c_dept').value.trim() || null,
-    ownerName: document.getElementById('c_owner').value.trim() || null,
-    allowedIps: document.getElementById('c_ips').value.trim() || null,
+    ownerDept: $('c_dept').value.trim() || null,
+    ownerName: $('c_owner').value.trim() || null,
+    issuedTo,
+    scopes: checkedScopes('c_scopes'),
+    allowedIps: $('c_ips').value.trim() || null,
     ratePerMin: isNaN(rate) ? null : rate,
-    memo: document.getElementById('c_memo').value.trim() || null,
+    memo: $('c_memo').value.trim() || null,
   })});
-  showIssued(data.apiKey);
-  ['c_name','c_dept','c_owner','c_ips','c_rate','c_memo'].forEach(id => document.getElementById(id).value = '');
+  showIssued(data.apiKey, name, issuedTo);
+  ['c_name','c_dept','c_owner','c_issuedTo','c_ips','c_rate','c_memo'].forEach(id => $(id).value = '');
+  renderScopes('c_scopes', []);
   await loadClients();
 }
 
-function showIssued(key) {
-  document.getElementById('issuedKey').textContent = key;
-  document.getElementById('issued').classList.remove('hide');
+function showIssued(key, clientName, issuedTo) {
+  $('issuedKey').textContent = key;
+  $('issuedFor').textContent = `사용처: ${clientName}  ·  받는 사람: ${issuedTo}`;
+  $('issued').classList.remove('hide');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 async function copyKey() {
-  try { await navigator.clipboard.writeText(document.getElementById('issuedKey').textContent); toast('복사됨'); }
+  try { await navigator.clipboard.writeText($('issuedKey').textContent); toast('복사됨'); }
   catch { toast('복사 실패 — 직접 드래그해서 복사하세요'); }
 }
 
@@ -226,28 +344,97 @@ function savePayload(c) {
            active: c.active, memo: c.memo };
 }
 
+function openEdit(seq) {
+  const c = find(seq);
+  editingSeq = seq;
+  $('e_title').textContent = `사용처 수정 — #${seq} ${c.clientName}`;
+  $('e_name').value = c.clientName || '';
+  $('e_dept').value = c.ownerDept || '';
+  $('e_owner').value = c.ownerName || '';
+  $('e_ips').value = c.allowedIps || '';
+  $('e_rate').value = c.ratePerMin ?? '';
+  $('e_memo').value = c.memo || '';
+  renderScopes('e_scopes', c.scopes || []);
+  $('editDlg').showModal();
+}
+
+async function saveEdit() {
+  const c = find(editingSeq);
+  const name = $('e_name').value.trim();
+  if (!name) { toast('사용처 이름을 입력하세요'); return; }
+  const scopes = checkedScopes('e_scopes');
+  if (!scopes.length) { toast('권한을 하나 이상 고르세요'); return; }
+  const rate = parseInt($('e_rate').value, 10);
+  const p = savePayload(c);
+  Object.assign(p, {
+    clientName: name,
+    ownerDept: $('e_dept').value.trim() || null,
+    ownerName: $('e_owner').value.trim() || null,
+    scopes,
+    allowedIps: $('e_ips').value.trim() || null,
+    ratePerMin: isNaN(rate) ? c.ratePerMin : rate,
+    memo: $('e_memo').value.trim() || null,
+  });
+  await api('/api/admin/clients/' + editingSeq, { method: 'PUT', body: JSON.stringify(p) });
+  $('editDlg').close();
+  toast('저장됨');
+  await loadClients();
+}
+
 async function toggleActive(seq) {
   const c = find(seq);
   const next = !c.active;
-  if (!confirm(`"${c.clientName}" 키를 ${next ? '다시 사용' : '중지'}하시겠어요?` + (next ? '' : '\n중지하면 그 즉시 이 키로는 발송할 수 없습니다.'))) return;
+  if (!confirm(`"${c.clientName}" 키를 ${next ? '다시 사용' : '중지'}하시겠어요?` + (next ? '' : '\n중지하면 그 즉시 이 키로는 호출할 수 없습니다.'))) return;
   const p = savePayload(c); p.active = next;
   await api('/api/admin/clients/' + seq, { method: 'PUT', body: JSON.stringify(p) });
   toast(next ? '사용 재개' : '중지됨');
   await loadClients();
 }
 
-async function regen(seq) {
+function openRegen(seq) {
   const c = find(seq);
-  if (!confirm(`"${c.clientName}" 키를 재발급할까요?\n예전 키는 즉시 무효가 됩니다 — 사용 중인 시스템에 새 키를 전달해야 합니다.`)) return;
-  const data = await api(`/api/admin/clients/${seq}/regenerate`, { method: 'POST' });
-  showIssued(data.apiKey);
+  regenSeq = seq;
+  $('r_title').textContent = `키 재발급 — #${seq} ${c.clientName}`;
+  $('r_issuedTo').value = c.lastIssuedTo || c.ownerName || '';
+  $('r_reason').value = '';
+  $('regenDlg').showModal();
+}
+
+async function doRegen() {
+  const c = find(regenSeq);
+  const issuedTo = $('r_issuedTo').value.trim();
+  if (!issuedTo) { toast('새 키 받는 사람을 입력하세요'); return; }
+  const data = await api(`/api/admin/clients/${regenSeq}/regenerate`, { method: 'POST', body: JSON.stringify({
+    issuedTo, reason: $('r_reason').value.trim() || null,
+  })});
+  $('regenDlg').close();
+  showIssued(data.apiKey, c.clientName, issuedTo);
   await loadClients();
+}
+
+async function showHistory(seq) {
+  const rows = await api(seq == null ? '/api/admin/clients/history?limit=300' : `/api/admin/clients/${seq}/history?limit=300`);
+  $('histTitle').textContent = seq == null
+      ? `발급·변경 이력 — 전체 (최근 ${rows.length}건)`
+      : `발급·변경 이력 — ${find(seq).clientName} (${rows.length}건)`;
+  document.querySelector('#histTbl tbody').innerHTML = rows.map(h => `
+    <tr>
+      <td class="muted" style="white-space:nowrap">${dt(h.createdAt)}</td>
+      <td>${esc(h.clientName || '#' + h.clientSeq)}</td>
+      <td><span class="act ${esc(h.action)}">${esc(ACTION[h.action] || h.action)}</span></td>
+      <td class="mono">${h.keyPrefix ? esc(h.keyPrefix) + '…' : ''}</td>
+      <td>${esc(h.issuedTo || '')}</td>
+      <td class="small-text">${esc(h.detail || '')}</td>
+      <td>${esc(h.actor)}</td>
+    </tr>`).join('') || '<tr><td colspan="7" class="muted">이력 없음</td></tr>';
+  $('histCard').classList.remove('hide');
+  $('histCard').scrollIntoView({ behavior: 'smooth' });
 }
 
 async function showLogs(seq) {
   const c = find(seq);
   const logs = await api(`/api/admin/clients/${seq}/logs?limit=100`);
-  document.getElementById('logTitle').textContent = `발송 기록 — ${c.clientName} (최근 ${logs.length}건)`;
+  $('logTitle').textContent = `발송 기록 — ${c.clientName} (최근 ${logs.length}건)`;
   document.querySelector('#logTbl tbody').innerHTML = logs.map(l => `
     <tr>
       <td class="muted">${dt(l.sentAt)}</td>
@@ -257,11 +444,11 @@ async function showLogs(seq) {
       <td class="muted">${esc(l.errorMessage || '')}</td>
       <td class="mono">${esc(l.requestIp || '')}</td>
     </tr>`).join('') || '<tr><td colspan="6" class="muted">기록 없음</td></tr>';
-  document.getElementById('logCard').classList.remove('hide');
-  document.getElementById('logCard').scrollIntoView({ behavior: 'smooth' });
+  $('logCard').classList.remove('hide');
+  $('logCard').scrollIntoView({ behavior: 'smooth' });
 }
 
-document.getElementById('token').addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+['token', 'operator'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') connect(); }));
 </script>
 </body>
 </html>

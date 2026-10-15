@@ -46,11 +46,18 @@ curl -X POST http://localhost:8083/api/admin/clients \
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
-| GET | `/api/admin/clients` | 사용처 목록 (권한·최근 30일 성공/실패 건수) |
-| POST | `/api/admin/clients` | 등록 + 키 발급 |
+| GET | `/api/admin/clients` | 사용처 목록 (권한·최근 30일 성공/실패 건수·현재 키 받은 사람) |
+| GET | `/api/admin/clients/scopes` | 발급 가능한 권한(scope) 목록 |
+| POST | `/api/admin/clients` | 등록 + 키 발급 (`issuedTo`: 키 받는 사람, 비우면 담당자) |
 | PUT | `/api/admin/clients/{seq}` | 수정 (이름·담당·권한·허용 IP·한도·사용 여부) |
-| POST | `/api/admin/clients/{seq}/regenerate` | 키 재발급 (옛 키 즉시 무효) |
+| POST | `/api/admin/clients/{seq}/regenerate` | 키 재발급 (옛 키 즉시 무효). body `{"issuedTo","reason"}` 선택 |
 | GET | `/api/admin/clients/{seq}/logs?limit=100` | 발송 기록 |
+| GET | `/api/admin/clients/history?limit=200` | 발급·변경 이력 전체 |
+| GET | `/api/admin/clients/{seq}/history?limit=200` | 사용처별 발급·변경 이력 |
+
+발급·재발급·중지·재개·수정은 `api_key_history` 에 쌓인다(누구에게·누가·언제·무엇을).
+처리자는 헤더 `X-Admin-Operator`(URL 인코딩한 이름)로 받는다. 없으면 `admin` 으로 남는다.
+관리 화면은 `/admin.html` — 운영은 nginx 에서 관리자 IP + Basic Auth 로 막혀 있다.
 
 ### 2) Teams 메시지 보내기 (각 시스템)
 
