@@ -1,5 +1,6 @@
 package com.tara.commonapi.global.config;
 
+import com.tara.commonapi.admin.repository.AdminTokenRepository;
 import com.tara.commonapi.client.repository.ApiClientRepository;
 import com.tara.commonapi.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +18,7 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 
 /**
  * 공용 API 보안 설정.
- * - /api/admin/**   : 관리 토큰(X-Admin-Token) → ROLE_ADMIN (AdminTokenFilter).
+ * - /api/admin/**   : 관리 토큰(X-Admin-Token) → ROLE_ADMIN, 마스터 토큰은 ROLE_MASTER 도 (AdminTokenFilter).
  * - 그 외 /api/**   : API 키(X-Api-Key) → 사용처 + SCOPE_* 권한 (ApiKeyAuthFilter).
  *                     어떤 API 를 쓸 수 있는지는 키의 scope 로 정한다(ApiScopes).
  * - /actuator/health, Swagger(켜져 있을 때) : permitAll.
@@ -38,7 +39,8 @@ public class SecurityConfig {
     private boolean swaggerEnabled;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, ApiClientRepository apiClients) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, ApiClientRepository apiClients,
+                                           AdminTokenRepository adminTokens) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -47,7 +49,7 @@ public class SecurityConfig {
                 .headers(h -> h.frameOptions(f -> f.sameOrigin()))   // h2-console(local)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new IpAllowlistFilter(ipAllowlist, trustProxy), SecurityContextHolderFilter.class)
-                .addFilterBefore(new AdminTokenFilter(adminToken), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new AdminTokenFilter(adminToken, adminTokens), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new ApiKeyAuthFilter(apiClients, trustProxy), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) ->

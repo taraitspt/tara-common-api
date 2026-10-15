@@ -7,11 +7,12 @@ import org.springframework.util.StringUtils;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * 공용 API 권한(scope) — 키마다 "쓸 수 있는 API"를 정한다.
- * 새 공용 API 를 추가할 때: ① 여기 상수와 ALL 에 추가 ② 컨트롤러에
+ * 새 공용 API 를 추가할 때: ① 여기 상수와 ALL·INFO 에 추가 ② 컨트롤러에
  * @PreAuthorize("hasAuthority('SCOPE_xxx')") ③ SecurityConfig 의 경로 규칙에 추가.
  */
 public final class ApiScopes {
@@ -21,6 +22,16 @@ public final class ApiScopes {
 
     /** 발급 가능한 전체 scope — 관리 API 입력을 이 목록으로 검사한다 */
     public static final Set<String> ALL = Set.of(NOTIFY);
+
+    /** 관리 화면(현황·가이드)에 보이는 이름과 경로 — scope 를 추가하면 여기도 채운다 */
+    public static final Map<String, Info> INFO = Map.of(
+            NOTIFY, new Info("Teams 알림 발송", "/api/notify/**"));
+
+    public record Info(String label, String path) {}
+
+    public static Info info(String scope) {
+        return INFO.getOrDefault(scope, new Info(scope, "-"));
+    }
 
     /** Spring Security 권한 이름 접두사: scope "notify" → authority "SCOPE_notify" */
     public static final String AUTHORITY_PREFIX = "SCOPE_";

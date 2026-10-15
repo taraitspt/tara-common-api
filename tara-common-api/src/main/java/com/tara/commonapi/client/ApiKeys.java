@@ -16,15 +16,25 @@ public final class ApiKeys {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     public static final String KEY_HEAD = "tara_";
+    /** 관리 화면 토큰 앞머리 — API 키(tara_)와 눈으로 구분되게 */
+    public static final String ADMIN_HEAD = "tadm_";
     /** 목록에서 알아보는 용도로 저장하는 키 앞부분 길이 */
     public static final int PREFIX_LEN = 12;
 
     private ApiKeys() {}
 
     public static String newKey() {
+        return newKey(KEY_HEAD);
+    }
+
+    public static String newAdminToken() {
+        return newKey(ADMIN_HEAD);
+    }
+
+    private static String newKey(String head) {
         byte[] b = new byte[32];
         RANDOM.nextBytes(b);
-        return KEY_HEAD + Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+        return head + Base64.getUrlEncoder().withoutPadding().encodeToString(b);
     }
 
     public static String sha256(String raw) {

@@ -56,8 +56,12 @@ curl -X POST http://localhost:8083/api/admin/clients \
 | GET | `/api/admin/clients/{seq}/history?limit=200` | 사용처별 발급·변경 이력 |
 
 발급·재발급·중지·재개·수정은 `api_key_history` 에 쌓인다(누구에게·누가·언제·무엇을).
-처리자는 헤더 `X-Admin-Operator`(URL 인코딩한 이름)로 받는다. 없으면 `admin` 으로 남는다.
-관리 화면은 `/admin.html` — 운영은 nginx 에서 관리자 IP + Basic Auth 로 막혀 있다.
+관리 토큰은 두 종류다.
+- **마스터 토큰**: 서버 환경변수 `APP_ADMIN_TOKEN`. 관리자 토큰 발급·중지(`/api/admin/tokens`)는 마스터만 한다. 처리자 이름은 헤더 `X-Admin-Operator`(URL 인코딩)로 받는다.
+- **사람별 관리 토큰**(`tadm_…`, `admin_token` 테이블): 관리 화면 "관리자 토큰" 탭에서 마스터가 발급. API 키 관리·현황·가이드를 쓸 수 있고, 처리자는 토큰의 이름으로 남는다.
+
+관리 화면은 `/admin.html` — 탭: 현황(API별 키·호출 30일) · API 키 · 발급 이력 · 관리자 토큰(마스터) · 가이드(API별 표준 가이드 PDF).
+운영은 nginx 에서 관리자 IP + Basic Auth 로 한 번 더 막혀 있다 — 다른 관리자에게 토큰을 줄 때는 그 사람 IP 와 Basic Auth 계정도 nginx 에 추가해야 한다.
 
 ### 2) Teams 메시지 보내기 (각 시스템)
 
@@ -74,9 +78,10 @@ curl -X POST http://localhost:8083/api/notify/teams \
 
 ## 새 공용 API 를 추가할 때
 
-1. `ApiScopes` 에 scope 상수 추가 (예: `EMPLOYEE = "employee"`) + `ALL` 에 포함
+1. `ApiScopes` 에 scope 상수 추가 (예: `EMPLOYEE = "employee"`) + `ALL`, `INFO`(관리 화면 이름·경로)에 포함
 2. 컨트롤러에 `@PreAuthorize("hasAuthority('SCOPE_employee')")`, `SecurityConfig` 경로 규칙에 `hasAuthority("SCOPE_employee")` 추가
 3. 키 인증(해시·사용 여부·허용 IP)은 `ApiKeyAuthFilter` 가 자동으로 해 준다 — 사용처는 기존 키에 scope 만 추가 발급(수정 API)하면 바로 쓸 수 있다
+4. 관리 화면 가이드: `static/admin.html` 의 `GUIDES` 에 그 API 의 표준 가이드 본문을 추가 (없으면 "가이드 준비 중"으로 보인다)
 
 ## HRM에서 옮길 때
 
@@ -86,7 +91,7 @@ curl -X POST http://localhost:8083/api/notify/teams \
 
 ## HRM과 다른 점
 
-- 관리 API 인증: HRM 로그인(JWT)+ADMIN 역할 → 고정 관리 토큰(`X-Admin-Token`). 공용 서버에는 사용자 DB가 없기 때문.
+- 관리 API 인증: HRM 로그인(JWT)+ADMIN 역할 → 마스터 토큰(환경변수) + 사람별 관리 토큰(`X-Admin-Token`). 공용 서버에는 사용자 DB가 없기 때문.
 - 키가 notify 전용(`notify_client`) → 공용(`api_client`) + 권한(scope). 키 인증도 서비스 안 → 보안 필터(`ApiKeyAuthFilter`).
 - 새로 발급하는 키 앞머리: `hrmn_` → `tara_` (옛 키도 해시가 같아 그대로 동작)
 - 메뉴 권한(`menu_permission`) INSERT 제외

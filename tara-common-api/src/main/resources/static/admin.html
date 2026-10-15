@@ -7,14 +7,14 @@
 <style>
   :root {
     --bg: #f5f6f8; --card: #ffffff; --text: #1a1f27; --muted: #667085;
-    --line: #e4e7ec; --accent: #2a5bd7; --accent-text: #ffffff;
+    --line: #e4e7ec; --grid: #eef0f3; --accent: #2a5bd7; --accent-text: #ffffff; --accent-soft: #e8eefc;
     --danger: #d92d20; --ok: #067647; --warn-bg: #fffaeb; --warn-line: #fec84b;
     --chip-bg: #eef2f9;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #11141a; --card: #1a1f27; --text: #e6e9ef; --muted: #98a2b3;
-      --line: #2c3340; --accent: #6b93f2; --accent-text: #0e1320;
+      --line: #2c3340; --grid: #232a35; --accent: #6b93f2; --accent-text: #0e1320; --accent-soft: #1f2a44;
       --danger: #f97066; --ok: #47cd89; --warn-bg: #2a2110; --warn-line: #6b5518;
       --chip-bg: #242b38;
     }
@@ -23,14 +23,17 @@
   body { margin: 0; background: var(--bg); color: var(--text);
          font: 14px/1.6 "Segoe UI", "Malgun Gothic", system-ui, sans-serif; }
   .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 16px 80px; }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+  header.top { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  h2 { font-size: 16px; margin: 0; }
+  .sub { color: var(--muted); margin: 0; font-size: 13px; }
+  .who { font-size: 13px; display: flex; gap: 8px; align-items: center; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
           padding: 16px; margin-bottom: 16px; }
   label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
   input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line);
     border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
-  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
   button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px;
     background: var(--card); color: var(--text); font: inherit; cursor: pointer; white-space: nowrap; }
   button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
@@ -42,6 +45,7 @@
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   tr:last-child td { border-bottom: none; }
   .chip { display: inline-block; background: var(--chip-bg); border-radius: 99px;
     padding: 1px 9px; font-size: 12px; margin: 0 2px 2px 0; white-space: nowrap; }
@@ -54,129 +58,241 @@
     word-break: break-all; margin: 8px 0; padding: 10px; background: var(--card);
     border: 1px solid var(--line); border-radius: 6px; }
   .hide { display: none !important; }
-  details summary { cursor: pointer; font-weight: 600; }
   #msg { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
     background: var(--text); color: var(--card); padding: 8px 18px; border-radius: 8px;
-    font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; }
+    font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 10; }
   .scrollx { overflow-x: auto; }
   td .btns { display: flex; gap: 4px; flex-wrap: wrap; }
   .cardhead { display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    margin-bottom: 8px; flex-wrap: wrap; }
-  .cardhead .btns { display: flex; gap: 4px; }
+    margin-bottom: 10px; flex-wrap: wrap; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .toolbar input { flex: 1 1 220px; width: auto; }
+  .toolbar select { flex: 0 0 auto; width: auto; }
+  .toolbar .spacer { flex: 1 1 0; }
   .scopes { display: flex; gap: 12px; flex-wrap: wrap; padding: 6px 0; }
   .scopes label { display: inline-flex; align-items: center; gap: 4px; margin: 0;
     font-size: 13px; color: var(--text); cursor: pointer; }
   .scopes input { width: auto; }
   dialog { border: 1px solid var(--line); border-radius: 10px; padding: 18px;
-    background: var(--card); color: var(--text); width: min(640px, calc(100vw - 32px)); }
+    background: var(--card); color: var(--text); width: min(680px, calc(100vw - 32px)); }
   dialog::backdrop { background: rgba(0,0,0,.4); }
-  dialog h2 { font-size: 16px; margin: 0 0 12px; }
+  dialog h2 { margin-bottom: 12px; }
   .dlgbtns { display: flex; justify-content: end; gap: 8px; margin-top: 14px; }
   .act { display: inline-block; border-radius: 4px; padding: 0 6px; font-size: 12px; font-weight: 600;
     white-space: nowrap; background: var(--chip-bg); }
   .act.ISSUE, .act.REISSUE { color: var(--accent); }
   .act.STOP { color: var(--danger); }
   .act.RESUME { color: var(--ok); }
+
+  /* 탭 */
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 16px; overflow-x: auto; }
+  .tabs button { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none;
+    padding: 10px 14px; color: var(--muted); font-weight: 600; }
+  .tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  /* 현황 */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .tile .k { font-size: 12px; color: var(--muted); }
+  .tile .v { font-size: 26px; font-weight: 700; line-height: 1.3; font-variant-numeric: tabular-nums; }
+  .tile .d { font-size: 12px; color: var(--muted); }
+  .apistats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 16px; margin: 12px 0; }
+  .apistats .k { font-size: 12px; color: var(--muted); }
+  .apistats .v { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .chartwrap { position: relative; }
+  .chartwrap svg { display: block; width: 100%; height: 200px; }
+  .chartwrap .axis { fill: var(--muted); font-size: 11px; }
+  .chartwrap .gridline { stroke: var(--grid); stroke-width: 1; }
+  .chartwrap .baseline { stroke: var(--line); stroke-width: 1; }
+  .chartwrap .bar { fill: var(--accent); }
+  .chartwrap .hit { fill: transparent; cursor: default; }
+  .chartwrap .bar.hover { opacity: .75; }
+  .tip { position: absolute; pointer-events: none; background: var(--text); color: var(--card);
+    padding: 6px 10px; border-radius: 6px; font-size: 12px; white-space: nowrap; transform: translate(-50%, -110%);
+    opacity: 0; transition: opacity .1s; }
+  .two { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+  @media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+  details > summary { cursor: pointer; color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+  /* 페이지 */
+  .pager { display: flex; gap: 4px; justify-content: center; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .pager button { min-width: 32px; padding: 3px 8px; font-size: 12px; }
+  .pager button.cur { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .pager .info { font-size: 12px; color: var(--muted); margin: 0 8px; }
+
+  /* 가이드 */
+  .guides { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+  .guide h3 { margin: 0 0 4px; font-size: 15px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>공용 API 사용처 관리</h1>
-  <p class="sub">사용처(부서 시스템) 등록 · API 키 발급 · 누구에게 발급했는지 이력 · 중지 · 발송 기록 — tara-common-api</p>
+  <header class="top">
+    <div>
+      <h1>공용 API 관리</h1>
+      <p class="sub">API 키 발급·이력 · 사용 현황 · 관리자 토큰 · 표준 가이드 — tara-common-api</p>
+    </div>
+    <div class="who hide" id="who">
+      <span id="whoName"></span>
+      <button class="small" onclick="logout()">나가기</button>
+    </div>
+  </header>
 
-  <!-- 토큰 -->
-  <div class="card">
+  <!-- 로그인 -->
+  <div class="card" id="loginCard">
     <div class="row">
       <div style="flex:3">
-        <label>관리 토큰 (X-Admin-Token) — 이 탭에서만 쓰고 저장하지 않습니다</label>
-        <input id="token" type="password" placeholder="관리 토큰을 붙여넣으세요" autocomplete="off">
+        <label>관리 토큰 (X-Admin-Token) — 이 탭을 닫으면 지워집니다</label>
+        <input id="token" type="password" placeholder="tadm_… (사람별 관리 토큰) 또는 마스터 토큰" autocomplete="off">
       </div>
       <div style="flex:1">
-        <label>처리자 이름 * — 발급·변경 이력에 남습니다</label>
+        <label>처리자 이름 — 마스터 토큰으로 들어올 때만 입력</label>
         <input id="operator" maxlength="20" placeholder="예: 홍길동">
       </div>
       <div style="flex:0"><button class="primary" onclick="connect()">연결</button></div>
     </div>
+    <div class="muted small-text" style="margin-top:8px">관리 토큰은 마스터 관리자에게 받으세요. 사람별 토큰으로 들어오면 처리자 이름이 자동으로 남습니다.</div>
   </div>
 
   <!-- 발급 결과 (1회 표시) -->
   <div id="issued" class="keybox hide">
-    <b>🔑 키가 발급되었습니다 — 지금이 아니면 다시 볼 수 없습니다</b>
+    <b id="issuedHead">🔑 키가 발급되었습니다 — 지금이 아니면 다시 볼 수 없습니다</b>
     <div id="issuedFor" class="small-text" style="margin-top:4px"></div>
     <code id="issuedKey"></code>
-    <button class="primary" onclick="copyKey()">키 복사</button>
-    <button onclick="document.getElementById('issued').classList.add('hide')">닫기</button>
+    <button class="primary" onclick="copyKey()">복사</button>
+    <button id="issuedGuideBtn" class="hide" onclick="guideForIssued()">이 사용처 가이드 PDF</button>
+    <button onclick="$('issued').classList.add('hide')">닫기</button>
     <div class="muted small-text" style="margin-top:8px">받는 사람에게 1:1로 전달하세요. 서버에는 해시만 저장되어 다시 볼 수 없습니다. 분실 시 "재발급"을 쓰세요.</div>
   </div>
 
-  <!-- 등록 -->
-  <div class="card hide" id="createCard">
-    <details>
-      <summary>➕ 새 사용처 등록 + 키 발급</summary>
-      <div class="row" style="margin-top:12px">
-        <div><label>사용처 이름 *</label><input id="c_name" placeholder="예: 영업관리 GROW"></div>
-        <div><label>담당 부서</label><input id="c_dept" placeholder="예: IT지원팀"></div>
-        <div><label>담당자</label><input id="c_owner" placeholder="예: 홍길동"></div>
-        <div><label>키 받는 사람 * (이력에 남음)</label><input id="c_issuedTo" maxlength="100" placeholder="예: 홍길동 (dksah@taratps.com)"></div>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <div style="flex:2"><label>허용 IP/CIDR (쉼표 구분, 비우면 제한 없음 — 운영은 꼭 입력)</label>
-          <input id="c_ips" placeholder="예: 52.78.211.240/32"></div>
-        <div><label>분당 한도 (기본 30, 대량 리마인드면 150~300)</label><input id="c_rate" type="number" min="1" max="300" placeholder="30"></div>
-      </div>
-      <div style="margin-top:10px">
-        <label>권한 (쓸 수 있는 API) — 하나도 안 고르면 notify</label>
-        <div class="scopes" id="c_scopes"></div>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <div style="flex:2"><label>메모</label><input id="c_memo" placeholder="예: 결재 알림용"></div>
-        <div style="flex:0"><button class="primary" onclick="createClient()">등록 + 키 발급</button></div>
-      </div>
-    </details>
-  </div>
+  <div id="app" class="hide">
+    <nav class="tabs" id="tabs">
+      <button data-tab="stats" onclick="showTab('stats')">현황</button>
+      <button data-tab="clients" onclick="showTab('clients')">API 키</button>
+      <button data-tab="history" onclick="showTab('history')">발급 이력</button>
+      <button data-tab="tokens" class="hide" id="tokensTabBtn" onclick="showTab('tokens')">관리자 토큰</button>
+      <button data-tab="guide" onclick="showTab('guide')">가이드</button>
+    </nav>
 
-  <!-- 목록 -->
-  <div class="card hide" id="listCard">
-    <div class="cardhead">
-      <b>사용처 목록</b>
-      <div class="btns">
-        <button class="small" onclick="showHistory(null)">전체 발급 이력</button>
-        <button class="small" onclick="loadClients()">새로고침</button>
+    <!-- 현황 -->
+    <section id="tab-stats" class="hide">
+      <div class="tiles" id="kpis"></div>
+      <div id="apiStats"></div>
+    </section>
+
+    <!-- API 키 -->
+    <section id="tab-clients" class="hide">
+      <div class="card">
+        <div class="toolbar">
+          <input id="f_q" placeholder="검색: 사용처 · 담당 · 받은 사람 · 키 앞부분 · 메모" oninput="page.clients=1; renderClients()">
+          <select id="f_scope" onchange="page.clients=1; renderClients()"><option value="">권한 전체</option></select>
+          <select id="f_status" onchange="page.clients=1; renderClients()">
+            <option value="">상태 전체</option><option value="on">사용 중</option><option value="off">중지</option>
+          </select>
+          <button class="small" onclick="loadClients()">새로고침</button>
+          <button class="primary" onclick="openCreate()">＋ 새 사용처·키 발급</button>
+        </div>
+        <div class="scrollx"><table id="tbl">
+          <thead><tr>
+            <th>#</th><th>사용처</th><th>담당</th><th>키</th><th>현재 키 받은 사람</th><th>권한</th><th>허용 IP</th>
+            <th class="num">한도/분</th><th>상태</th><th>최근 사용</th><th class="num">30일 호출</th><th>관리</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <div class="pager" id="pg_clients"></div>
       </div>
-    </div>
-    <div class="scrollx"><table id="tbl">
-      <thead><tr>
-        <th>#</th><th>사용처</th><th>담당</th><th>키</th><th>현재 키 받은 사람</th><th>권한</th><th>허용 IP</th>
-        <th>한도/분</th><th>상태</th><th>최근 사용</th><th>30일 발송</th><th>관리</th>
-      </tr></thead>
-      <tbody></tbody>
-    </table></div>
-  </div>
 
-  <!-- 발급·변경 이력 -->
-  <div class="card hide" id="histCard">
-    <div class="cardhead">
-      <b id="histTitle">발급·변경 이력</b>
-      <button class="small" onclick="document.getElementById('histCard').classList.add('hide')">닫기</button>
-    </div>
-    <div class="scrollx"><table id="histTbl">
-      <thead><tr><th>시각</th><th>사용처</th><th>구분</th><th>키</th><th>받은 사람</th><th>내용</th><th>처리자</th></tr></thead>
-      <tbody></tbody>
-    </table></div>
-  </div>
+      <div class="card hide" id="logCard">
+        <div class="cardhead">
+          <b id="logTitle">발송 기록</b>
+          <button class="small" onclick="$('logCard').classList.add('hide')">닫기</button>
+        </div>
+        <div class="scrollx"><table id="logTbl">
+          <thead><tr><th>시각</th><th>받는 사람</th><th>제목</th><th>결과</th><th>오류</th><th>호출 IP</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </section>
 
-  <!-- 발송 기록 -->
-  <div class="card hide" id="logCard">
-    <div class="cardhead">
-      <b id="logTitle">발송 기록</b>
-      <button class="small" onclick="document.getElementById('logCard').classList.add('hide')">닫기</button>
-    </div>
-    <div class="scrollx"><table id="logTbl">
-      <thead><tr><th>시각</th><th>받는 사람</th><th>제목</th><th>결과</th><th>오류</th><th>호출 IP</th></tr></thead>
-      <tbody></tbody>
-    </table></div>
+    <!-- 발급 이력 -->
+    <section id="tab-history" class="hide">
+      <div class="card">
+        <div class="toolbar">
+          <input id="h_q" placeholder="검색: 사용처 · 받은 사람 · 처리자 · 키 앞부분 · 내용" oninput="page.history=1; renderHistory()">
+          <select id="h_client" onchange="page.history=1; renderHistory()"><option value="">사용처 전체</option></select>
+          <select id="h_action" onchange="page.history=1; renderHistory()">
+            <option value="">구분 전체</option><option value="ISSUE">발급</option><option value="REISSUE">재발급</option>
+            <option value="STOP">중지</option><option value="RESUME">재개</option><option value="UPDATE">수정</option>
+          </select>
+          <button class="small" onclick="loadHistory()">새로고침</button>
+        </div>
+        <div class="scrollx"><table id="histTbl">
+          <thead><tr><th>시각</th><th>사용처</th><th>구분</th><th>키</th><th>받은 사람</th><th>내용</th><th>처리자</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <div class="pager" id="pg_history"></div>
+      </div>
+    </section>
+
+    <!-- 관리자 토큰 (마스터 전용) -->
+    <section id="tab-tokens" class="hide">
+      <div class="card">
+        <div class="toolbar">
+          <input id="t_q" placeholder="검색: 이름 · 토큰 앞부분 · 메모" oninput="page.tokens=1; renderTokens()">
+          <select id="t_status" onchange="page.tokens=1; renderTokens()">
+            <option value="">상태 전체</option><option value="on">사용 중</option><option value="off">중지</option>
+          </select>
+          <button class="small" onclick="loadTokens()">새로고침</button>
+          <button class="primary" onclick="openTokenCreate()">＋ 관리자 토큰 발급</button>
+        </div>
+        <div class="scrollx"><table id="tokTbl">
+          <thead><tr><th>#</th><th>관리자</th><th>토큰</th><th>상태</th><th>최근 사용</th><th>발급</th><th>최근 변경</th><th>메모</th><th>관리</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <div class="pager" id="pg_tokens"></div>
+        <div class="muted small-text" style="margin-top:10px">
+          마스터 토큰(서버 환경변수 APP_ADMIN_TOKEN)은 이 목록에 없습니다. 관리자 토큰 발급·중지는 마스터 토큰으로 들어왔을 때만 할 수 있습니다.
+          사람별 토큰은 API 키 발급·관리·현황·가이드를 쓸 수 있습니다.
+        </div>
+      </div>
+    </section>
+
+    <!-- 가이드 -->
+    <section id="tab-guide" class="hide">
+      <div class="card">
+        <div class="cardhead"><b>API 표준 가이드</b></div>
+        <p class="muted small-text" style="margin:0 0 12px">사용처 담당자에게 키와 함께 전달하는 문서입니다. 사용처를 고르면 그 사용처의 권한·허용 IP·한도가 들어갑니다(키 원문은 들어가지 않습니다).
+          "PDF 저장"을 누르면 인쇄 창이 열립니다 — 대상을 <b>PDF로 저장</b>으로 고르세요.</p>
+        <div class="guides" id="guideList"></div>
+      </div>
+    </section>
   </div>
 </div>
+
+<!-- 등록 -->
+<dialog id="createDlg">
+  <h2>새 사용처 등록 + 키 발급</h2>
+  <div class="row">
+    <div><label>사용처 이름 *</label><input id="c_name" placeholder="예: 영업관리 GROW"></div>
+    <div><label>담당 부서</label><input id="c_dept" placeholder="예: IT지원팀"></div>
+    <div><label>담당자</label><input id="c_owner" placeholder="예: 홍길동"></div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div style="flex:2"><label>키 받는 사람 * (이력에 남음)</label><input id="c_issuedTo" maxlength="100" placeholder="예: 홍길동 (hong@taratps.com)"></div>
+    <div><label>분당 한도 (기본 30)</label><input id="c_rate" type="number" min="1" max="300" placeholder="30"></div>
+  </div>
+  <div style="margin-top:10px"><label>허용 IP/CIDR (쉼표 구분, 비우면 제한 없음 — 운영은 꼭 입력)</label>
+    <input id="c_ips" placeholder="예: 52.78.211.240/32"></div>
+  <div style="margin-top:10px">
+    <label>권한 (쓸 수 있는 API) — 하나도 안 고르면 notify</label>
+    <div class="scopes" id="c_scopes"></div>
+  </div>
+  <div style="margin-top:10px"><label>메모</label><input id="c_memo" placeholder="예: 결재 알림용"></div>
+  <div class="dlgbtns">
+    <button onclick="$('createDlg').close()">취소</button>
+    <button class="primary" onclick="createClient()">등록 + 키 발급</button>
+  </div>
+</dialog>
 
 <!-- 수정 -->
 <dialog id="editDlg">
@@ -197,7 +313,7 @@
   <div style="margin-top:10px"><label>메모</label><input id="e_memo"></div>
   <div class="muted small-text" style="margin-top:10px">키 값은 바뀌지 않습니다. 변경 내용은 저장 즉시 적용되고 이력에 남습니다.</div>
   <div class="dlgbtns">
-    <button onclick="document.getElementById('editDlg').close()">취소</button>
+    <button onclick="$('editDlg').close()">취소</button>
     <button class="primary" onclick="saveEdit()">저장</button>
   </div>
 </dialog>
@@ -206,36 +322,53 @@
 <dialog id="regenDlg">
   <h2 id="r_title">키 재발급</h2>
   <div class="keybox" style="margin-bottom:12px">예전 키는 <b>즉시 무효</b>가 됩니다 — 사용 중인 시스템에 새 키를 바로 전달해야 합니다.</div>
-  <div class="row">
-    <div><label>새 키 받는 사람 *</label><input id="r_issuedTo" maxlength="100"></div>
-  </div>
+  <div><label>새 키 받는 사람 *</label><input id="r_issuedTo" maxlength="100"></div>
   <div style="margin-top:10px"><label>사유</label><input id="r_reason" maxlength="500" placeholder="예: 담당자 변경, 키 유출 의심, 분실"></div>
   <div class="dlgbtns">
-    <button onclick="document.getElementById('regenDlg').close()">취소</button>
+    <button onclick="$('regenDlg').close()">취소</button>
     <button class="primary" onclick="doRegen()">재발급</button>
+  </div>
+</dialog>
+
+<!-- 관리자 토큰 발급·수정 -->
+<dialog id="tokenDlg">
+  <h2 id="k_title">관리자 토큰 발급</h2>
+  <div class="row">
+    <div><label>관리자 이름 * (처리자로 남음, 20자)</label><input id="k_name" maxlength="20" placeholder="예: 홍길동"></div>
+  </div>
+  <div style="margin-top:10px"><label>메모</label><input id="k_memo" maxlength="500" placeholder="예: IT지원팀, 2026-10 입사"></div>
+  <div class="dlgbtns">
+    <button onclick="$('tokenDlg').close()">취소</button>
+    <button class="primary" id="k_save" onclick="saveToken()">발급</button>
   </div>
 </dialog>
 <div id="msg"></div>
 
 <script>
-let clients = [];
-let allScopes = [];
-let editingSeq = null;
-let regenSeq = null;
-
+const PAGE_SIZE = 20;
 const ACTION = { ISSUE: '발급', REISSUE: '재발급', STOP: '중지', RESUME: '재개', UPDATE: '수정' };
+
+let me = null;
+let clients = [], allScopes = [], stats = null, histRows = [], tokens = [];
+let editingSeq = null, regenSeq = null, tokenSeq = null, lastIssuedClientSeq = null;
+const page = { clients: 1, history: 1, tokens: 1 };
+const loaded = {};
 
 function $(id) { return document.getElementById(id); }
 function token() { return $('token').value.trim(); }
 function operator() { return $('operator').value.trim(); }
+function esc(s) { return (s ?? '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function dt(s) { return s ? s.replace('T', ' ').slice(0, 16) : '-'; }
+function n(v) { return (v ?? 0).toLocaleString('ko-KR'); }
 
-// 처리자 이름만 이 브라우저에 기억한다(토큰은 저장하지 않는다)
+// 토큰은 이 탭(sessionStorage)에만, 처리자 이름은 이 브라우저(localStorage)에 기억한다
 try { $('operator').value = localStorage.getItem('tara-admin-operator') || ''; } catch {}
+try { $('token').value = sessionStorage.getItem('tara-admin-token') || ''; } catch {}
 
 function toast(t) {
   const m = $('msg');
   m.textContent = t; m.style.opacity = 1;
-  setTimeout(() => m.style.opacity = 0, 2500);
+  clearTimeout(toast.t); toast.t = setTimeout(() => m.style.opacity = 0, 2800);
 }
 
 async function api(path, opts = {}) {
@@ -251,34 +384,195 @@ async function api(path, opts = {}) {
   return body.data;
 }
 
+/* ───────── 로그인 ───────── */
+
 async function connect() {
   if (!token()) { toast('관리 토큰을 입력하세요'); return; }
-  if (!operator()) { toast('처리자 이름을 입력하세요 — 이력에 남습니다'); $('operator').focus(); return; }
-  try { localStorage.setItem('tara-admin-operator', operator()); } catch {}
-  await loadClients();
+  me = await api('/api/admin/me');
+  if (me.master && !operator()) {
+    toast('마스터 토큰입니다 — 처리자 이름을 입력하세요 (이력에 남습니다)');
+    $('operator').focus(); me = null; return;
+  }
+  try { sessionStorage.setItem('tara-admin-token', token()); } catch {}
+  try { if (operator()) localStorage.setItem('tara-admin-operator', operator()); } catch {}
+  $('whoName').innerHTML = `<b>${esc(me.name)}</b> <span class="chip">${me.master ? '마스터' : '관리자'}</span>`;
+  $('who').classList.remove('hide');
+  $('loginCard').classList.add('hide');
+  $('app').classList.remove('hide');
+  $('tokensTabBtn').classList.toggle('hide', !me.master);
+
   allScopes = await api('/api/admin/clients/scopes');
-  renderScopes('c_scopes', []);
-  $('createCard').classList.remove('hide');
-  $('listCard').classList.remove('hide');
-  toast('연결됨');
+  $('f_scope').innerHTML = '<option value="">권한 전체</option>' + allScopes.map(s => `<option>${esc(s)}</option>`).join('');
+  await loadClients();
+  showTab('stats');
 }
 
-function renderScopes(boxId, checked) {
-  $(boxId).innerHTML = allScopes.map(s =>
-    `<label><input type="checkbox" value="${esc(s)}"${checked.includes(s) ? ' checked' : ''}> ${esc(s)}</label>`).join('');
+function logout() {
+  try { sessionStorage.removeItem('tara-admin-token'); } catch {}
+  location.reload();
 }
 
-function checkedScopes(boxId) {
-  return [...document.querySelectorAll(`#${boxId} input:checked`)].map(i => i.value);
+/* ───────── 탭 ───────── */
+
+async function showTab(name) {
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('section[id^="tab-"]').forEach(s => s.classList.toggle('hide', s.id !== 'tab-' + name));
+  if (name === 'stats') await loadStats();
+  if (name === 'history' && !loaded.history) await loadHistory();
+  if (name === 'tokens' && !loaded.tokens) await loadTokens();
+  if (name === 'guide') { if (!stats) await loadStats(false); renderGuides(); }
 }
 
-function esc(s) { return (s ?? '').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function dt(s) { return s ? s.replace('T', ' ').slice(0, 16) : '-'; }
+/* ───────── 공통: 페이지 ───────── */
+
+function paginate(rows, key, pagerId, rerender) {
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  page[key] = Math.min(Math.max(page[key], 1), pages);
+  const cur = page[key];
+  const from = (cur - 1) * PAGE_SIZE;
+  const nums = [];
+  for (let i = Math.max(1, cur - 3); i <= Math.min(pages, cur + 3); i++) nums.push(i);
+  $(pagerId).innerHTML = rows.length <= PAGE_SIZE ? `<span class="info">${rows.length}건</span>` :
+    `<button ${cur === 1 ? 'disabled' : ''} data-p="${cur - 1}">‹</button>` +
+    nums.map(i => `<button class="${i === cur ? 'cur' : ''}" data-p="${i}">${i}</button>`).join('') +
+    `<button ${cur === pages ? 'disabled' : ''} data-p="${cur + 1}">›</button>` +
+    `<span class="info">총 ${rows.length}건 · ${cur}/${pages}쪽</span>`;
+  $(pagerId).querySelectorAll('button[data-p]').forEach(b => b.onclick = () => { page[key] = +b.dataset.p; rerender(); });
+  return rows.slice(from, from + PAGE_SIZE);
+}
+
+function matches(q, ...fields) {
+  if (!q) return true;
+  q = q.toLowerCase();
+  return fields.some(f => (f ?? '').toString().toLowerCase().includes(q));
+}
+
+/* ───────── 현황 ───────── */
+
+async function loadStats(render = true) {
+  stats = await api('/api/admin/stats');
+  if (render) renderStats();
+}
+
+function renderStats() {
+  const s = stats;
+  const rate = s.calls30d ? (s.failed30d / s.calls30d * 100).toFixed(1) : '0.0';
+  $('kpis').innerHTML = `
+    <div class="tile"><div class="k">사용처(키)</div><div class="v">${n(s.activeClients)}</div><div class="d">사용 중 · 전체 ${n(s.clients)}개</div></div>
+    <div class="tile"><div class="k">최근 30일 호출</div><div class="v">${n(s.calls30d)}</div><div class="d">기록이 있는 API 합계</div></div>
+    <div class="tile"><div class="k">최근 30일 실패</div><div class="v">${n(s.failed30d)}</div><div class="d">실패율 ${rate}%</div></div>
+    <div class="tile"><div class="k">활성 관리자 토큰</div><div class="v">${n(s.activeAdminTokens)}</div><div class="d">마스터 토큰 제외</div></div>`;
+
+  $('apiStats').innerHTML = s.apis.map(a => `
+    <div class="card">
+      <div class="cardhead">
+        <div><h2>${esc(a.label)}</h2><div class="muted small-text"><span class="chip">${esc(a.scope)}</span> <span class="mono">${esc(a.path)}</span></div></div>
+        <button class="small" onclick="openGuide('${esc(a.scope)}', null, false)">가이드 보기</button>
+      </div>
+      <div class="apistats">
+        <div><div class="k">발급된 키</div><div class="v">${n(a.keys)}</div><div class="muted small-text">사용 중 ${n(a.activeKeys)} · 중지 ${n(a.stoppedKeys)}</div></div>
+        <div><div class="k">30일 호출</div><div class="v">${a.usageTracked ? n(a.calls30d) : '-'}</div></div>
+        <div><div class="k">30일 실패</div><div class="v">${a.usageTracked ? n(a.failed30d) : '-'}</div></div>
+        <div><div class="k">최근 사용</div><div class="v" style="font-size:14px">${dt(a.lastUsedAt)}</div></div>
+      </div>
+      ${a.usageTracked ? `
+      <div class="two">
+        <div>
+          <div class="muted small-text" style="margin-bottom:4px">일별 호출 수 — 최근 30일 (받는 사람 기준)</div>
+          <div class="chartwrap" id="chart-${esc(a.scope)}"></div>
+          <details><summary>표로 보기</summary>
+            <div class="scrollx" style="max-height:240px;overflow-y:auto"><table>
+              <thead><tr><th>날짜</th><th class="num">호출</th><th class="num">실패</th></tr></thead>
+              <tbody>${a.daily.slice().reverse().map(d => `<tr><td>${d.date}</td><td class="num">${n(d.total)}</td><td class="num">${n(d.failed)}</td></tr>`).join('')}</tbody>
+            </table></div>
+          </details>
+        </div>
+        <div>
+          <div class="muted small-text" style="margin-bottom:4px">많이 쓰는 사용처 — 최근 30일</div>
+          <table>
+            <thead><tr><th>사용처</th><th class="num">호출</th><th class="num">실패</th></tr></thead>
+            <tbody>${a.top.map(c => `<tr><td>${esc(c.clientName)}</td><td class="num">${n(c.total)}</td><td class="num ${c.failed ? 'off' : ''}">${n(c.failed)}</td></tr>`).join('')
+              || '<tr><td colspan="3" class="muted">호출 없음</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>` : `<div class="muted small-text">이 API 는 아직 호출 기록을 모으지 않아 키 현황과 최근 사용만 보입니다.</div>`}
+    </div>`).join('') || '<div class="card muted">등록된 API 가 없습니다</div>';
+
+  s.apis.filter(a => a.usageTracked).forEach(a => drawBars($('chart-' + a.scope), a.daily));
+}
+
+/** 일별 막대 — 단일 계열(강조색), 4px 둥근 윗부분, 2px 간격, 호버 툴팁 */
+function drawBars(el, days) {
+  const W = 720, H = 200, L = 40, R = 8, T = 10, B = 24;
+  const max = Math.max(...days.map(d => d.total), 0);
+  const step = niceStep(max);
+  const top = Math.max(step * Math.ceil(max / step), step);
+  const pw = W - L - R, ph = H - T - B;
+  const bw = pw / days.length;
+  const y = v => T + ph - (v / top) * ph;
+  let g = '';
+  for (let v = 0; v <= top; v += step) {
+    g += `<line class="${v === 0 ? 'baseline' : 'gridline'}" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>`;
+    g += `<text class="axis" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${n(v)}</text>`;
+  }
+  let bars = '';
+  days.forEach((d, i) => {
+    const x = L + i * bw + 1, w = Math.max(bw - 2, 1);
+    const h = (d.total / top) * ph;
+    if (h > 0) {
+      const r = Math.min(4, w / 2, h);
+      const x0 = x, x1 = x + w, yb = T + ph, yt = yb - h;
+      bars += `<path class="bar" data-i="${i}" d="M${x0},${yb} V${yt + r} Q${x0},${yt} ${x0 + r},${yt} H${x1 - r} Q${x1},${yt} ${x1},${yt + r} V${yb} Z"/>`;
+    }
+    if (i % 5 === 0 || i === days.length - 1) {
+      bars += `<text class="axis" x="${x + w / 2}" y="${H - 6}" text-anchor="middle">${d.date.slice(5).replace('-', '/')}</text>`;
+    }
+    bars += `<rect class="hit" data-i="${i}" x="${L + i * bw}" y="${T}" width="${bw}" height="${ph}"/>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="일별 호출 수 막대 차트">${g}${bars}</svg><div class="tip"></div>`;
+  const tip = el.querySelector('.tip');
+  const svg = el.querySelector('svg');
+  el.querySelectorAll('.hit').forEach(r => {
+    r.addEventListener('mouseenter', () => {
+      const i = +r.dataset.i, d = days[i];
+      el.querySelectorAll('.bar').forEach(b => b.classList.toggle('hover', +b.dataset.i === i));
+      tip.innerHTML = `<b>${d.date}</b><br>호출 ${n(d.total)}건 · 실패 ${n(d.failed)}건`;
+      const box = svg.getBoundingClientRect(), sx = box.width / W, sy = box.height / H;
+      tip.style.left = ((L + (i + .5) * bw) * sx) + 'px';
+      tip.style.top = (y(d.total) * sy) + 'px';
+      tip.style.opacity = 1;
+    });
+    r.addEventListener('mouseleave', () => {
+      tip.style.opacity = 0;
+      el.querySelectorAll('.bar').forEach(b => b.classList.remove('hover'));
+    });
+  });
+}
+
+function niceStep(max) {
+  if (max <= 4) return 1;
+  const raw = max / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw / mag;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * mag;
+}
+
+/* ───────── API 키 ───────── */
 
 async function loadClients() {
   clients = await api('/api/admin/clients');
-  const tb = document.querySelector('#tbl tbody');
-  tb.innerHTML = clients.map(c => `
+  $('h_client').innerHTML = '<option value="">사용처 전체</option>' +
+    clients.map(c => `<option value="${c.clientSeq}">${esc(c.clientName)}</option>`).join('');
+  renderClients();
+}
+
+function renderClients() {
+  const q = $('f_q').value.trim(), sc = $('f_scope').value, st = $('f_status').value;
+  const rows = clients.filter(c =>
+    matches(q, c.clientName, c.ownerDept, c.ownerName, c.lastIssuedTo, c.keyPrefix, c.memo) &&
+    (!sc || (c.scopes || []).includes(sc)) &&
+    (!st || (st === 'on') === !!c.active)).slice().reverse();
+  const view = paginate(rows, 'clients', 'pg_clients', renderClients);
+  document.querySelector('#tbl tbody').innerHTML = view.map(c => `
     <tr>
       <td>${c.clientSeq}</td>
       <td><b>${esc(c.clientName)}</b>${c.memo ? `<div class="muted small-text">${esc(c.memo)}</div>` : ''}</td>
@@ -288,18 +582,33 @@ async function loadClients() {
           <div class="muted small-text">${dt(c.lastIssuedAt)}</div></td>
       <td>${(c.scopes || []).map(s => `<span class="chip">${esc(s)}</span>`).join('')}</td>
       <td class="mono">${esc(c.allowedIps || '제한 없음')}</td>
-      <td>${c.ratePerMin}</td>
+      <td class="num">${c.ratePerMin}</td>
       <td class="${c.active ? 'on' : 'off'}">${c.active ? '사용 중' : '중지'}</td>
       <td class="muted">${dt(c.lastUsedAt)}</td>
-      <td>${c.sent30d}건${c.failed30d ? ` <span class="off">(실패 ${c.failed30d})</span>` : ''}</td>
+      <td class="num">${n(c.sent30d)}${c.failed30d ? `<div class="off small-text">실패 ${n(c.failed30d)}</div>` : ''}</td>
       <td><div class="btns">
         <button class="small" onclick="openEdit(${c.clientSeq})">수정</button>
-        <button class="small" onclick="showHistory(${c.clientSeq})">이력</button>
+        <button class="small" onclick="historyOf(${c.clientSeq})">이력</button>
         <button class="small" onclick="showLogs(${c.clientSeq})">발송기록</button>
         <button class="small" onclick="toggleActive(${c.clientSeq})">${c.active ? '중지' : '다시 사용'}</button>
         <button class="small danger" onclick="openRegen(${c.clientSeq})">재발급</button>
+        <button class="small" onclick="guideFor(${c.clientSeq})">가이드</button>
       </div></td>
-    </tr>`).join('') || '<tr><td colspan="12" class="muted">등록된 사용처가 없습니다</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="12" class="muted">조건에 맞는 사용처가 없습니다</td></tr>';
+}
+
+function renderScopes(boxId, checked) {
+  $(boxId).innerHTML = allScopes.map(s =>
+    `<label><input type="checkbox" value="${esc(s)}"${checked.includes(s) ? ' checked' : ''}> ${esc(s)} <span class="muted small-text">${esc(scopeLabel(s))}</span></label>`).join('');
+}
+function checkedScopes(boxId) { return [...document.querySelectorAll(`#${boxId} input:checked`)].map(i => i.value); }
+function scopeLabel(s) { const a = stats && stats.apis.find(x => x.scope === s); return a ? a.label : ''; }
+
+async function openCreate() {
+  if (!stats) await loadStats(false);
+  ['c_name','c_dept','c_owner','c_issuedTo','c_ips','c_rate','c_memo'].forEach(id => $(id).value = '');
+  renderScopes('c_scopes', []);
+  $('createDlg').showModal();
 }
 
 async function createClient() {
@@ -318,15 +627,18 @@ async function createClient() {
     ratePerMin: isNaN(rate) ? null : rate,
     memo: $('c_memo').value.trim() || null,
   })});
-  showIssued(data.apiKey, name, issuedTo);
-  ['c_name','c_dept','c_owner','c_issuedTo','c_ips','c_rate','c_memo'].forEach(id => $(id).value = '');
-  renderScopes('c_scopes', []);
+  $('createDlg').close();
+  showIssued('키', data.apiKey, `사용처: ${name}  ·  받는 사람: ${issuedTo}`, data.clientSeq);
+  loaded.history = false;
   await loadClients();
 }
 
-function showIssued(key, clientName, issuedTo) {
+function showIssued(kind, key, forText, clientSeq) {
+  $('issuedHead').textContent = `🔑 ${kind}가 발급되었습니다 — 지금이 아니면 다시 볼 수 없습니다`;
   $('issuedKey').textContent = key;
-  $('issuedFor').textContent = `사용처: ${clientName}  ·  받는 사람: ${issuedTo}`;
+  $('issuedFor').textContent = forText;
+  lastIssuedClientSeq = clientSeq || null;
+  $('issuedGuideBtn').classList.toggle('hide', !clientSeq);
   $('issued').classList.remove('hide');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -365,8 +677,7 @@ async function saveEdit() {
   const scopes = checkedScopes('e_scopes');
   if (!scopes.length) { toast('권한을 하나 이상 고르세요'); return; }
   const rate = parseInt($('e_rate').value, 10);
-  const p = savePayload(c);
-  Object.assign(p, {
+  const p = Object.assign(savePayload(c), {
     clientName: name,
     ownerDept: $('e_dept').value.trim() || null,
     ownerName: $('e_owner').value.trim() || null,
@@ -378,6 +689,7 @@ async function saveEdit() {
   await api('/api/admin/clients/' + editingSeq, { method: 'PUT', body: JSON.stringify(p) });
   $('editDlg').close();
   toast('저장됨');
+  loaded.history = false;
   await loadClients();
 }
 
@@ -388,6 +700,7 @@ async function toggleActive(seq) {
   const p = savePayload(c); p.active = next;
   await api('/api/admin/clients/' + seq, { method: 'PUT', body: JSON.stringify(p) });
   toast(next ? '사용 재개' : '중지됨');
+  loaded.history = false;
   await loadClients();
 }
 
@@ -408,27 +721,9 @@ async function doRegen() {
     issuedTo, reason: $('r_reason').value.trim() || null,
   })});
   $('regenDlg').close();
-  showIssued(data.apiKey, c.clientName, issuedTo);
+  showIssued('키', data.apiKey, `사용처: ${c.clientName}  ·  받는 사람: ${issuedTo}`, regenSeq);
+  loaded.history = false;
   await loadClients();
-}
-
-async function showHistory(seq) {
-  const rows = await api(seq == null ? '/api/admin/clients/history?limit=300' : `/api/admin/clients/${seq}/history?limit=300`);
-  $('histTitle').textContent = seq == null
-      ? `발급·변경 이력 — 전체 (최근 ${rows.length}건)`
-      : `발급·변경 이력 — ${find(seq).clientName} (${rows.length}건)`;
-  document.querySelector('#histTbl tbody').innerHTML = rows.map(h => `
-    <tr>
-      <td class="muted" style="white-space:nowrap">${dt(h.createdAt)}</td>
-      <td>${esc(h.clientName || '#' + h.clientSeq)}</td>
-      <td><span class="act ${esc(h.action)}">${esc(ACTION[h.action] || h.action)}</span></td>
-      <td class="mono">${h.keyPrefix ? esc(h.keyPrefix) + '…' : ''}</td>
-      <td>${esc(h.issuedTo || '')}</td>
-      <td class="small-text">${esc(h.detail || '')}</td>
-      <td>${esc(h.actor)}</td>
-    </tr>`).join('') || '<tr><td colspan="7" class="muted">이력 없음</td></tr>';
-  $('histCard').classList.remove('hide');
-  $('histCard').scrollIntoView({ behavior: 'smooth' });
 }
 
 async function showLogs(seq) {
@@ -448,7 +743,359 @@ async function showLogs(seq) {
   $('logCard').scrollIntoView({ behavior: 'smooth' });
 }
 
+/* ───────── 발급 이력 ───────── */
+
+async function loadHistory() {
+  histRows = await api('/api/admin/clients/history?limit=500');
+  loaded.history = true;
+  renderHistory();
+}
+
+async function historyOf(seq) {
+  await showTab('history');
+  if (!loaded.history) await loadHistory();
+  $('h_client').value = String(seq);
+  page.history = 1;
+  renderHistory();
+}
+
+function renderHistory() {
+  const q = $('h_q').value.trim(), cl = $('h_client').value, ac = $('h_action').value;
+  const rows = histRows.filter(h =>
+    matches(q, h.clientName, h.issuedTo, h.actor, h.keyPrefix, h.detail) &&
+    (!cl || String(h.clientSeq) === cl) && (!ac || h.action === ac));
+  const view = paginate(rows, 'history', 'pg_history', renderHistory);
+  document.querySelector('#histTbl tbody').innerHTML = view.map(h => `
+    <tr>
+      <td class="muted" style="white-space:nowrap">${dt(h.createdAt)}</td>
+      <td>${esc(h.clientName || '#' + h.clientSeq)}</td>
+      <td><span class="act ${esc(h.action)}">${esc(ACTION[h.action] || h.action)}</span></td>
+      <td class="mono">${h.keyPrefix ? esc(h.keyPrefix) + '…' : ''}</td>
+      <td>${esc(h.issuedTo || '')}</td>
+      <td class="small-text">${esc(h.detail || '')}</td>
+      <td>${esc(h.actor)}</td>
+    </tr>`).join('') || '<tr><td colspan="7" class="muted">조건에 맞는 이력이 없습니다</td></tr>';
+}
+
+/* ───────── 관리자 토큰 (마스터) ───────── */
+
+async function loadTokens() {
+  tokens = await api('/api/admin/tokens');
+  loaded.tokens = true;
+  renderTokens();
+}
+
+function renderTokens() {
+  const q = $('t_q').value.trim(), st = $('t_status').value;
+  const rows = tokens.filter(t => matches(q, t.adminName, t.keyPrefix, t.memo) && (!st || (st === 'on') === !!t.active));
+  const view = paginate(rows, 'tokens', 'pg_tokens', renderTokens);
+  document.querySelector('#tokTbl tbody').innerHTML = view.map(t => `
+    <tr>
+      <td>${t.tokenSeq}</td>
+      <td><b>${esc(t.adminName)}</b></td>
+      <td class="mono">${esc(t.keyPrefix)}…</td>
+      <td class="${t.active ? 'on' : 'off'}">${t.active ? '사용 중' : '중지'}</td>
+      <td class="muted">${dt(t.lastUsedAt)}</td>
+      <td>${dt(t.createdAt)}<div class="muted small-text">${esc(t.createdId || '')}</div></td>
+      <td>${dt(t.updatedAt)}<div class="muted small-text">${esc(t.updatedId || '')}</div></td>
+      <td class="small-text">${esc(t.memo || '')}</td>
+      <td><div class="btns">
+        <button class="small" onclick="openTokenEdit(${t.tokenSeq})">수정</button>
+        <button class="small" onclick="toggleToken(${t.tokenSeq})">${t.active ? '중지' : '다시 사용'}</button>
+        <button class="small danger" onclick="regenToken(${t.tokenSeq})">재발급</button>
+      </div></td>
+    </tr>`).join('') || '<tr><td colspan="9" class="muted">발급된 관리자 토큰이 없습니다</td></tr>';
+}
+
+function findToken(seq) { return tokens.find(t => t.tokenSeq === seq); }
+
+function openTokenCreate() {
+  tokenSeq = null;
+  $('k_title').textContent = '관리자 토큰 발급';
+  $('k_save').textContent = '발급';
+  $('k_name').value = ''; $('k_memo').value = '';
+  $('tokenDlg').showModal();
+}
+
+function openTokenEdit(seq) {
+  const t = findToken(seq);
+  tokenSeq = seq;
+  $('k_title').textContent = `관리자 토큰 수정 — #${seq}`;
+  $('k_save').textContent = '저장';
+  $('k_name').value = t.adminName; $('k_memo').value = t.memo || '';
+  $('tokenDlg').showModal();
+}
+
+async function saveToken() {
+  const adminName = $('k_name').value.trim();
+  if (!adminName) { toast('관리자 이름을 입력하세요'); return; }
+  const memo = $('k_memo').value.trim() || null;
+  if (tokenSeq == null) {
+    const data = await api('/api/admin/tokens', { method: 'POST', body: JSON.stringify({ adminName, memo }) });
+    $('tokenDlg').close();
+    showIssued('관리자 토큰', data.token, `관리자: ${adminName}  ·  이 토큰으로 /admin.html 에 들어옵니다`, null);
+  } else {
+    const t = findToken(tokenSeq);
+    await api('/api/admin/tokens/' + tokenSeq, { method: 'PUT', body: JSON.stringify({ adminName, memo, active: t.active }) });
+    $('tokenDlg').close();
+    toast('저장됨');
+  }
+  await loadTokens();
+}
+
+async function toggleToken(seq) {
+  const t = findToken(seq);
+  const next = !t.active;
+  if (!confirm(`"${t.adminName}" 관리자 토큰을 ${next ? '다시 사용' : '중지'}하시겠어요?`)) return;
+  await api('/api/admin/tokens/' + seq, { method: 'PUT', body: JSON.stringify({ adminName: t.adminName, memo: t.memo, active: next }) });
+  toast(next ? '사용 재개' : '중지됨');
+  await loadTokens();
+}
+
+async function regenToken(seq) {
+  const t = findToken(seq);
+  if (!confirm(`"${t.adminName}" 관리자 토큰을 재발급할까요?\n예전 토큰은 즉시 못 씁니다.`)) return;
+  const data = await api(`/api/admin/tokens/${seq}/regenerate`, { method: 'POST' });
+  showIssued('관리자 토큰', data.token, `관리자: ${t.adminName}`, null);
+  await loadTokens();
+}
+
+/* ───────── 가이드 ───────── */
+
+function renderGuides() {
+  const opts = '<option value="">사용처 선택 안 함 (공통 가이드)</option>' +
+    clients.map(c => `<option value="${c.clientSeq}">${esc(c.clientName)}${c.active ? '' : ' (중지)'}</option>`).join('');
+  $('guideList').innerHTML = allScopes.map(s => {
+    const g = GUIDES[s];
+    const holders = clients.filter(c => (c.scopes || []).includes(s));
+    return `<div class="card guide" style="margin:0">
+      <h3>${esc(scopeLabel(s) || s)}</h3>
+      <div class="muted small-text"><span class="chip">${esc(s)}</span> ${g ? esc(g.summary) : '가이드 준비 중'}</div>
+      <div style="margin-top:10px"><label>사용처 (선택)</label>
+        <select id="g_client_${esc(s)}">${opts.replace(/<option value="(\d+)">/g, (m, id) =>
+          holders.some(h => String(h.clientSeq) === id) ? m : `<option value="${id}" disabled>`)}</select></div>
+      <div class="dlgbtns" style="justify-content:start">
+        <button ${g ? '' : 'disabled'} onclick="openGuide('${esc(s)}', $('g_client_${esc(s)}').value, false)">미리보기</button>
+        <button class="primary" ${g ? '' : 'disabled'} onclick="openGuide('${esc(s)}', $('g_client_${esc(s)}').value, true)">PDF 저장</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function guideFor(seq) {
+  const c = find(seq);
+  const scope = (c.scopes || []).find(s => GUIDES[s]) || (c.scopes || [])[0];
+  openGuide(scope, String(seq), true);
+}
+
+function guideForIssued() {
+  if (lastIssuedClientSeq) guideFor(lastIssuedClientSeq);
+}
+
+/** 가이드 문서를 만들어 새 창(미리보기) 또는 인쇄 창(PDF 저장)으로 연다 */
+async function openGuide(scope, clientSeq, print) {
+  const g = GUIDES[scope];
+  if (!g) { toast('이 API 의 가이드는 아직 없습니다'); return; }
+  if (!stats) await loadStats(false);
+  const c = clientSeq ? find(+clientSeq) : null;
+  const ctx = {
+    base: location.origin,
+    label: scopeLabel(scope) || scope,
+    scope,
+    client: c,
+    issuer: me ? me.name : '',
+    date: new Date().toISOString().slice(0, 10),
+  };
+  const title = `TARA 공용 API 가이드 - ${ctx.label}${c ? ' - ' + c.clientName : ''} (${ctx.date})`;
+  const html = guideDoc(title, ctx, g);
+
+  if (!print) {
+    const w = window.open('', '_blank');
+    if (!w) { toast('팝업이 막혔습니다 — 이 사이트의 팝업을 허용하세요'); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    return;
+  }
+  // 인쇄 창 — 기본 파일 이름은 문서 제목(title)이 된다
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  document.body.appendChild(f);
+  f.contentDocument.open(); f.contentDocument.write(html); f.contentDocument.close();
+  const prevTitle = document.title;
+  document.title = title;           // 일부 브라우저는 부모 창 제목을 파일 이름으로 쓴다
+  setTimeout(() => {
+    f.contentWindow.focus();
+    f.contentWindow.print();
+    setTimeout(() => { document.title = prevTitle; f.remove(); }, 1000);
+  }, 300);
+}
+
+function guideDoc(title, ctx, g) {
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${esc(title)}</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+  body { font: 10.5pt/1.65 "Malgun Gothic", "Segoe UI", sans-serif; color: #1a1f27; margin: 0; padding: 24px; background: #fff; }
+  @media print { body { padding: 0; } .noprint { display: none; } }
+  h1 { font-size: 20pt; margin: 0 0 4px; }
+  h2 { font-size: 13pt; margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 2px solid #2a5bd7; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 14px 0 6px; break-after: avoid; }
+  p { margin: 6px 0; }
+  .meta { color: #667085; font-size: 9.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 9.5pt; break-inside: avoid; }
+  th, td { border: 1px solid #d0d5dd; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #f2f4f7; white-space: nowrap; }
+  code { font-family: Consolas, monospace; font-size: 9pt; background: #f2f4f7; padding: 0 4px; border-radius: 3px; }
+  pre { font-family: Consolas, monospace; font-size: 8.5pt; background: #f6f8fa; border: 1px solid #d0d5dd; border-radius: 6px;
+        padding: 10px 12px; white-space: pre-wrap; word-break: break-all; break-inside: avoid; margin: 6px 0 10px; }
+  .box { border: 1px solid #fec84b; background: #fffaeb; border-radius: 6px; padding: 8px 12px; margin: 8px 0; break-inside: avoid; }
+  .cover { border: 1px solid #d0d5dd; border-radius: 8px; padding: 12px 16px; margin: 14px 0; }
+  .cover table { margin: 0; } .cover th { width: 120px; }
+  ul { margin: 6px 0; padding-left: 20px; }
+  .noprint { position: fixed; top: 12px; right: 12px; }
+  .noprint button { padding: 8px 14px; font: inherit; cursor: pointer; }
+</style></head><body>
+<div class="noprint"><button onclick="print()">PDF 저장 / 인쇄</button></div>
+<h1>${esc(ctx.label)} API 가이드</h1>
+<div class="meta">TARA 공용 API (tara-common-api) · 권한(scope) <code>${esc(ctx.scope)}</code> · 작성일 ${esc(ctx.date)}${ctx.issuer ? ' · 발급 담당 ' + esc(ctx.issuer) : ''}</div>
+${ctx.client ? clientCover(ctx) : ''}
+${g.body(ctx)}
+${commonSecurity(ctx)}
+</body></html>`;
+}
+
+function clientCover(ctx) {
+  const c = ctx.client;
+  return `<div class="cover"><b>발급 정보 — ${esc(c.clientName)}</b>
+  <table>
+    <tr><th>사용처</th><td>${esc(c.clientName)}</td></tr>
+    <tr><th>담당</th><td>${esc([c.ownerDept, c.ownerName].filter(Boolean).join(' / ') || '-')}</td></tr>
+    <tr><th>API 키</th><td><code>${esc(c.keyPrefix)}…</code> (원문은 발급 담당자에게 1:1로 따로 받습니다)</td></tr>
+    <tr><th>쓸 수 있는 API</th><td>${(c.scopes || []).map(s => `<code>${esc(s)}</code> ${esc(scopeLabel(s))}`).join(', ')}</td></tr>
+    <tr><th>허용 IP</th><td>${c.allowedIps ? `<code>${esc(c.allowedIps)}</code> — 이 IP 에서만 호출됩니다` : '제한 없음'}</td></tr>
+    <tr><th>분당 한도</th><td>${c.ratePerMin}건</td></tr>
+    <tr><th>상태</th><td>${c.active ? '사용 중' : '중지 — 지금은 호출할 수 없습니다'}</td></tr>
+  </table></div>`;
+}
+
+function commonSecurity(ctx) {
+  return `<h2>키 보관 · 보안 수칙</h2>
+<ul>
+  <li>API 키는 <b>서버(백엔드)에만</b> 둡니다. 브라우저 JS, 모바일 앱, 공개 저장소에 넣으면 안 됩니다.</li>
+  <li>환경변수나 비밀값 저장소에 두고, 소스코드·로그·메신저에 원문을 남기지 않습니다.</li>
+  <li>키가 새어 나갔거나 담당자가 바뀌면 바로 발급 담당자에게 알려 <b>재발급</b>받습니다. 재발급하면 예전 키는 즉시 못 씁니다.</li>
+  <li>호출 서버 IP 가 바뀌면 미리 알려 주세요. 등록되지 않은 IP 에서는 <code>403</code> 이 납니다.</li>
+</ul>
+<h2>문의</h2>
+<p>키 발급·재발급·IP 변경·한도 조정: ${ctx.issuer ? esc(ctx.issuer) + ' (공용 API 관리자)' : '공용 API 관리자'}</p>`;
+}
+
+/* API 별 가이드 본문 — 새 공용 API 를 추가하면 여기에 한 칸 추가한다 */
+const GUIDES = {
+  notify: {
+    summary: '사내 시스템에서 직원에게 Teams 1:1 메시지를 보냅니다.',
+    body: ctx => {
+      const rate = ctx.client ? ctx.client.ratePerMin : 30;
+      const url = ctx.base + '/api/notify/teams';
+      const sample = '{\n  "to": ["hong@taratps.com", "kim@taratps.com"],\n  "title": "결재 요청",\n  "message": "출장비 정산 결재가 올라왔습니다.\\n확인 부탁드립니다.",\n  "link": "https://grow.taratps.com/approval/123"\n}';
+      return `
+<h2>1. 개요</h2>
+<p>공용 서비스 계정으로 받는 사람에게 <b>Teams 1:1 채팅 메시지</b>를 보냅니다. 각 시스템이 Teams 계정·비밀번호를 따로 가질 필요가 없습니다.</p>
+<p>메시지 맨 위에 <b>보낸 사용처 이름</b>이 작게 붙고, 그 아래 제목·본문·바로가기 링크가 표시됩니다.</p>
+
+<h2>2. 기본 정보</h2>
+<table>
+  <tr><th>주소</th><td><code>POST ${esc(url)}</code></td></tr>
+  <tr><th>인증</th><td>헤더 <code>X-Api-Key: tara_…</code> (발급받은 키)</td></tr>
+  <tr><th>본문 형식</th><td><code>Content-Type: application/json</code>, UTF-8</td></tr>
+  <tr><th>필요 권한</th><td>키에 <code>notify</code> 권한이 있어야 합니다</td></tr>
+  <tr><th>응답 시간</th><td>받는 사람 수에 비례 (1명당 수백 ms). 타임아웃은 넉넉히 <b>60초 이상</b>으로 잡으세요</td></tr>
+</table>
+
+<h2>3. 요청</h2>
+<table>
+  <tr><th>필드</th><th>필수</th><th>형식</th><th>설명</th></tr>
+  <tr><td><code>to</code></td><td>필수</td><td>문자열 배열, 1~20개</td><td>받는 사람 회사 메일. <code>@taratps.com</code> 만 허용. 중복은 한 번만 보냅니다</td></tr>
+  <tr><td><code>title</code></td><td>선택</td><td>문자열, 100자</td><td>굵게 표시되는 제목</td></tr>
+  <tr><td><code>message</code></td><td>필수</td><td>문자열, 2000자</td><td>본문. <b>일반 텍스트</b> — 줄바꿈(<code>\\n</code>)은 유지되고 HTML 태그는 글자 그대로 보입니다</td></tr>
+  <tr><td><code>link</code></td><td>선택</td><td>문자열, 500자</td><td>"바로가기" 링크. <code>http://</code> 또는 <code>https://</code> 로 시작</td></tr>
+</table>
+<pre>${esc(sample)}</pre>
+
+<h2>4. 응답</h2>
+<p>모든 응답은 <code>{"success": true|false, ...}</code> 모양입니다. 일부 받는 사람만 실패해도 HTTP 200 이고, <code>results</code> 에 사람별 결과가 옵니다.</p>
+<pre>${esc('{\n  "success": true,\n  "data": {\n    "total": 2, "success": 1, "failed": 1,\n    "results": [\n      { "to": "hong@taratps.com", "success": true },\n      { "to": "kim@taratps.com", "success": false, "error": "(실패 사유)" }\n    ]\n  }\n}')}</pre>
+<p>실패 응답:</p>
+<pre>${esc('{ "success": false, "code": "NOTIFY_RATE_LIMIT", "message": "분당 30건 한도를 넘었습니다(최근 1분 28건). 잠시 후 다시 시도하세요." }')}</pre>
+
+<h3>오류 코드</h3>
+<table>
+  <tr><th>HTTP</th><th>code</th><th>뜻 / 할 일</th></tr>
+  <tr><td>400</td><td><code>INVALID_INPUT</code></td><td>필수값 누락·길이 초과·이메일/링크 형식 오류. <code>message</code> 를 보고 고칩니다</td></tr>
+  <tr><td>401</td><td><code>API_KEY_INVALID</code></td><td>키 헤더가 없거나 틀림</td></tr>
+  <tr><td>403</td><td><code>API_KEY_FORBIDDEN</code></td><td>사용 중지된 키, 허용 IP 가 아님, 또는 이 키에 notify 권한 없음</td></tr>
+  <tr><td>403</td><td><code>IP_NOT_ALLOWED</code></td><td>서버 전체 접속 허용 IP 가 아님 — 관리자에게 호출 서버 IP 등록 요청</td></tr>
+  <tr><td>403</td><td><code>NOTIFY_FORBIDDEN</code></td><td>회사 메일이 아닌 받는 사람</td></tr>
+  <tr><td>429</td><td><code>NOTIFY_RATE_LIMIT</code></td><td>분당 한도 초과 — 잠시 뒤 다시 시도 (아래 5번)</td></tr>
+  <tr><td>503</td><td><code>NOTIFY_UNAVAILABLE</code></td><td>서버의 Teams 발송 설정 문제 — 관리자에게 알려 주세요</td></tr>
+</table>
+
+<h2>5. 한도 · 재시도</h2>
+<ul>
+  <li>분당 한도: <b>${rate}건</b>${ctx.client ? '' : ' (기본값, 사용처마다 다름)'} — <b>받는 사람 수</b>로 셉니다. 20명에게 한 번 보내면 20건입니다.</li>
+  <li><code>429</code> 를 받으면 1분 뒤 다시 보내세요. 대량 알림은 나눠서 천천히 보내야 합니다.</li>
+  <li><code>4xx</code> 는 다시 보내도 같은 결과입니다(429 제외). <code>5xx</code>·네트워크 오류만 간격을 두고 재시도하세요.</li>
+  <li>재시도할 때는 <code>results</code> 에서 <b>실패한 사람만</b> 다시 보내야 중복 메시지가 가지 않습니다.</li>
+</ul>
+
+<h2>6. 예제</h2>
+<h3>curl</h3>
+<pre>${esc(`curl -X POST ${url} \\
+  -H "X-Api-Key: $TARA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"to":["hong@taratps.com"],"title":"결재 요청","message":"결재가 올라왔습니다.","link":"https://grow.taratps.com/approval/123"}'`)}</pre>
+<h3>Java (Spring RestClient)</h3>
+<pre>${esc(`RestClient client = RestClient.builder()
+        .baseUrl("${ctx.base}")
+        .defaultHeader("X-Api-Key", System.getenv("TARA_API_KEY"))
+        .build();
+
+Map<String, Object> body = Map.of(
+        "to", List.of("hong@taratps.com"),
+        "title", "결재 요청",
+        "message", "결재가 올라왔습니다.\\n확인 부탁드립니다.",
+        "link", "https://grow.taratps.com/approval/123");
+
+Map<?, ?> res = client.post().uri("/api/notify/teams")
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(body)
+        .retrieve()
+        .body(Map.class);`)}</pre>
+<h3>Python (requests)</h3>
+<pre>${esc(`import os, requests
+
+res = requests.post(
+    "${url}",
+    headers={"X-Api-Key": os.environ["TARA_API_KEY"]},
+    json={"to": ["hong@taratps.com"], "title": "결재 요청",
+          "message": "결재가 올라왔습니다.\\n확인 부탁드립니다."},
+    timeout=60,
+)
+data = res.json()
+if not data["success"]:
+    print(data["code"], data["message"])`)}</pre>
+<h3>Node.js (fetch)</h3>
+<pre>${esc(`const res = await fetch("${url}", {
+  method: "POST",
+  headers: { "X-Api-Key": process.env.TARA_API_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({ to: ["hong@taratps.com"], title: "결재 요청", message: "결재가 올라왔습니다." }),
+});
+const data = await res.json();`)}</pre>
+<div class="box">키는 서버 쪽 코드에서만 씁니다. 브라우저에서 이 API 를 직접 부르지 마세요 — 키가 그대로 노출됩니다.</div>`;
+    },
+  },
+};
+
 ['token', 'operator'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') connect(); }));
+if (token()) connect().catch(() => {});
 </script>
 </body>
 </html>
