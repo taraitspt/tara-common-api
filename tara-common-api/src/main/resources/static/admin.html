@@ -1018,10 +1018,19 @@ const GUIDES = {
   <tr><th>응답 시간</th><td>받는 사람 수에 비례 (1명당 수백 ms). 타임아웃은 넉넉히 <b>60초 이상</b>으로 잡으세요</td></tr>
 </table>
 
+<h3>키 발급 요청 방법</h3>
+<p>키가 아직 없다면 <b>IT 서비스 포털 AI게시판</b>(<a href="https://it.taratps.com">it.taratps.com</a>)에 아래 네 가지를 적어 요청하세요.</p>
+<table>
+  <tr><th style="width:28%">① 시스템 이름</th><td>알림에 보내는 쪽으로 표시됩니다 (예: 영업관리 GROW)</td></tr>
+  <tr><th>② 담당 부서·담당자</th><td>키를 전달받고 관리할 분</td></tr>
+  <tr><th>③ 호출 서버의 공인 IP</th><td>등록된 IP 에서만 키가 동작합니다. 개발하려는 서버(또는 PC)에서 <a href="https://ip.pe.kr"><b>ip.pe.kr</b></a> 에 접속하면 나오는 공인 IP 를 확인해 함께 보내 주세요. <b>회사 IP 만 등록 가능합니다</b> (자택 등 외부 IP 불가)</td></tr>
+  <tr><th>④ 예상 발송량</th><td>분당 한도 설정에 씁니다 (기본 분당 30건, 대량 리마인드는 미리 말해 주세요)</td></tr>
+</table>
+
 <h2>3. 요청</h2>
 <table>
   <tr><th>필드</th><th>필수</th><th>형식</th><th>설명</th></tr>
-  <tr><td><code>to</code></td><td>필수</td><td>문자열 배열, 1~20개</td><td>받는 사람 회사 메일. <code>@taratps.com</code> 만 허용. 중복은 한 번만 보냅니다</td></tr>
+  <tr><td><code>to</code></td><td>필수</td><td>문자열 배열, 1~20개</td><td>받는 사람 회사 메일. <code>@taratps.com</code> <code>@taragrp.co.kr</code> <code>@tara.co.kr</code> 허용. 중복은 한 번만 보냅니다. Teams(Microsoft) 계정에 등록된 주소여야 합니다</td></tr>
   <tr><td><code>title</code></td><td>선택</td><td>문자열, 100자</td><td>굵게 표시되는 제목</td></tr>
   <tr><td><code>message</code></td><td>필수</td><td>문자열, 2000자</td><td>본문. <b>일반 텍스트</b> — 줄바꿈(<code>\\n</code>)은 유지되고 HTML 태그는 글자 그대로 보입니다</td></tr>
   <tr><td><code>link</code></td><td>선택</td><td>문자열, 500자</td><td>바로가기 링크. <code>http://</code> 또는 <code>https://</code> 로 시작</td></tr>
